@@ -1,0 +1,81 @@
+name: Sync upstream and deploy
+
+on:
+  schedule:
+    - cron: "15 16 * * *"
+  workflow_dispatch:
+    inputs:
+      deploy_even_if_unchanged:
+        description: Deploy even if upstream had no new commits
+        type: boolean
+        default: false
+
+concurrency:
+  group: sync-upstream
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.sync.outputs.changed }}
+      sha: ${{ steps.sync.outputs.sha }}
+    steps:
+      - name: Sync fork with mibgb65-cloud/OmniMail
+        id: sync
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          before="$(gh api "repos/${GITHUB_REPOSITORY}/commits/main" --jq .sha)"
+          if ! result="$(gh api --method POST "repos/${GITHUB_REPOSITORY}/merge-upstream" -f branch=main)"; then
+            echo "Upstream sync failed. If GitHub reports conflicts, open a Pull Request and merge it by hand."
+            exit 1
+          fi
+          echo "$result"
+          after="$(gh api "repos/${GITHUB_REPOSITORY}/commits/main" --jq .sha)"
+          echo "before=$before"
+          echo "after=$after"
+          echo "sha=$after" >> "$GITHUB_OUTPUT"
+          if [ "$before" = "$after" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  deploy:
+    needs: sync
+    if: ${{ needs.sync.outputs.changed == 'true' || github.event.inputs.deploy_even_if_unchanged == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Apply production Worker bindings
+        env:
+          SUPER_ADMIN_EMAIL: ${{ vars.SUPER_ADMIN_EMAIL }}
+          D1_DATABASE_ID: ${{ vars.D1_DATABASE_ID }}
+          D1_DATABASE_NAME: ${{ vars.D1_DATABASE_NAME }}
+          MAIL_BUCKET: ${{ vars.MAIL_BUCKET }}
+          BACKUP_BUCKET: ${{ vars.BACKUP_BUCKET }}
+        run: node .github/scripts/apply-production-bindings.mjs
+
+      - name: Install, build, migrate, and deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          npm ci
+          npm run build
+          npm run deploy
