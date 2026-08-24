@@ -96,6 +96,8 @@ const FINAL_MIGRATIONS = [
   '0022_consistency_guards.sql',
   '0023_linux_do_mail_accounts.sql',
   '0024_linux_do_mail_outbound.sql',
+  '0025_gmail_imap.sql',
+  '0026_gmail_unlimited_accounts.sql',
 ]
 
 describe('D1 migration check', () => {
@@ -108,14 +110,14 @@ describe('D1 migration check', () => {
     const checkedMigrations = fixture.prepare.mock.results
       .map(({ value }) => (value as MockStatement).bindings[0])
       .filter(Boolean)
-    expect(checkedMigrations).toEqual(['0024_linux_do_mail_outbound.sql'])
+    expect(checkedMigrations).toEqual(['0026_gmail_unlimited_accounts.sql'])
   })
 
   it.each([
-    ['2026-07-29-p5-outbound-rate-limit-admin', 14, 11],
-    ['2026-08-01-p2-translation-permissions', 16, 9],
-    ['2026-08-03-p3-multiple-drafts', 17, 8],
-  ])('recovers legacy schema %s through migration 0024', async (
+    ['2026-07-29-p5-outbound-rate-limit-admin', 14, 13],
+    ['2026-08-01-p2-translation-permissions', 16, 11],
+    ['2026-08-03-p3-multiple-drafts', 17, 10],
+  ])('recovers legacy schema %s through migration 0026', async (
     legacyVersion,
     baseline,
     batchCount,
@@ -125,12 +127,14 @@ describe('D1 migration check', () => {
 
     expect(fixture.batch).toHaveBeenCalledTimes(batchCount)
     expect(fixture.batches[0]).toHaveLength(baseline + 1)
-    expect(fixture.applied.size).toBe(24)
+    expect(fixture.applied.size).toBe(26)
     expect(fixture.applied.has('0020_device_token_scopes.sql')).toBe(true)
     expect(fixture.applied.has('0021_icloud_accounts.sql')).toBe(true)
     expect(fixture.applied.has('0022_consistency_guards.sql')).toBe(true)
     expect(fixture.applied.has('0023_linux_do_mail_accounts.sql')).toBe(true)
     expect(fixture.applied.has('0024_linux_do_mail_outbound.sql')).toBe(true)
+    expect(fixture.applied.has('0025_gmail_imap.sql')).toBe(true)
+    expect(fixture.applied.has('0026_gmail_unlimited_accounts.sql')).toBe(true)
     expect(fixture.prepare).toHaveBeenCalledWith(
       "ALTER TABLE device_sessions ADD COLUMN scopes TEXT NOT NULL DEFAULT '*'",
     )
@@ -139,6 +143,9 @@ describe('D1 migration check', () => {
     ))).toBe(true)
     expect(fixture.prepare.mock.calls.some(([sql]) => (
       String(sql).includes('CREATE TABLE IF NOT EXISTS linux_do_mail_accounts')
+    ))).toBe(true)
+    expect(fixture.prepare.mock.calls.some(([sql]) => (
+      String(sql).includes('CREATE TABLE IF NOT EXISTS gmail_imap_accounts')
     ))).toBe(true)
   })
 
@@ -150,7 +157,7 @@ describe('D1 migration check', () => {
 
     await ensureSchema(fixture.db)
 
-    expect(fixture.applied.size).toBe(24)
+    expect(fixture.applied.size).toBe(26)
     expect(fixture.batches[0]).toHaveLength(18)
   })
 
@@ -185,7 +192,7 @@ describe('D1 migration check', () => {
   it('accepts a concurrent migration completed by another isolate', async () => {
     const fixture = database({
       applied: FINAL_MIGRATIONS.slice(0, -1),
-      concurrentMigration: '0024_linux_do_mail_outbound.sql',
+      concurrentMigration: '0026_gmail_unlimited_accounts.sql',
     })
 
     await expect(ensureSchema(fixture.db)).resolves.toBeUndefined()
@@ -198,7 +205,7 @@ describe('D1 migration check', () => {
       failBatchOnce: true,
     })
 
-    await expect(ensureSchema(fixture.db)).rejects.toThrow('0024_linux_do_mail_outbound.sql')
+    await expect(ensureSchema(fixture.db)).rejects.toThrow('0026_gmail_unlimited_accounts.sql')
     await expect(ensureSchema(fixture.db)).resolves.toBeUndefined()
     expect(fixture.batch).toHaveBeenCalledTimes(2)
   })
