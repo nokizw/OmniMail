@@ -45,7 +45,7 @@ async function mockApp(page: Page, state = mockState()) {
     localStorage.setItem('omnimail.deployment-guide.v1', 'seen')
     localStorage.setItem('omnimail-locale', 'zh-CN')
   })
-  await page.route('**/api/**', async (route) => {
+  await page.route('**://*/api/**', async (route) => {
     const request = route.request()
     const url = new URL(request.url())
     const path = url.pathname
@@ -277,7 +277,7 @@ test('reselecting the inbox quietly refreshes without hiding the list', async ({
   await expect(panel).toHaveCount(0)
   await expect(page.getByText('Welcome to OmniMail')).toBeVisible()
   const requestsBeforeReselect = state.messageRequests
-  await page.getByRole('button', { name: '收件箱' }).click()
+  await page.getByRole('button', { name: '收件箱', exact: true }).click()
   await expect.poll(() => state.messageRequests).toBeGreaterThan(requestsBeforeReselect)
   await expect(page.getByText('Welcome to OmniMail')).toBeVisible()
   await expect(page.getByText('正在读取邮件')).toHaveCount(0)
@@ -326,7 +326,7 @@ test('users can compose and send a new message', async ({ page }) => {
   await dialog.getByRole('button', { name: '发送邮件' }).click()
   await expect(dialog).toBeHidden(); expect(state.sentMessage).toMatchObject({ mailboxAddress: 'support@other.example',
     to: 'friend@example.net', subject: 'Hello from OmniMail', text: 'This is a new message.' })
-  await expect(page.getByRole('status')).toHaveText('邮件已进入发送队列')
+  await expect(page.getByRole('status').filter({ hasText: '邮件已进入发送队列' })).toHaveText('邮件已进入发送队列')
 })
 test('a user with an empty mailbox allowance is prompted to choose an address', async ({ page }) => {
   const state = mockState()
@@ -400,8 +400,8 @@ test('bulk controls remain usable at common responsive widths', async ({ page })
   await list.hover(); expect(await list.evaluate((element) => element.clientWidth)).toBe(layout.width)
   await expect.poll(() => list.evaluate((element) => getComputedStyle(element).scrollbarColor)).not.toBe(layout.scrollbar)
   await page.locator('.list-header').hover(); await list.evaluate((element) => { element.scrollTop = 80 })
-  await expect(list).toHaveClass(/is-scrollbar-active/)
-  const [idleHeight, requestsBefore] = [await toolbar.evaluate((element) => element.getBoundingClientRect().height), state.messageRequests]
+  await expect(list).toHaveClass(/is-scrollbar-active/); await page.getByRole('button', { name: '回到列表顶部：收件箱' }).click()
+  await expect.poll(() => list.evaluate((element) => element.scrollTop)).toBe(0); const [idleHeight, requestsBefore] = [await toolbar.evaluate((element) => element.getBoundingClientRect().height), state.messageRequests]
   await expect(page.locator('.message-row__check')).toHaveCount(12)
   await page.getByRole('button', { name: '批量操作' }).click()
   await expect.poll(() => toolbar.evaluate((element) => element.getBoundingClientRect().height)).toBe(idleHeight)
@@ -497,7 +497,7 @@ test('administrators can review usage estimates and retry failed mail', async ({
   await mockApp(page)
   await page.goto('/')
   await page.getByRole('button', { name: '统计' }).click()
-  await expect(page.getByRole('heading', { name: 'Cloudflare 免费额度参考' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Cloudflare 免费额度参考' })).toBeVisible(); const trendPoint = page.locator('.statistics-point').last(); await expect(trendPoint).toHaveAttribute('tabindex', '0'); await trendPoint.scrollIntoViewIfNeeded(); await expect(trendPoint).toBeInViewport(); await trendPoint.hover(); const trendTooltip = page.locator('.omni-tooltip'); await expect(trendTooltip).toHaveAttribute('data-state', 'open'); await expect(trendTooltip).toContainText('1 封')
   await expect(page.getByText('Broken MIME')).toBeVisible()
   await page.getByRole('button', { name: '重新处理' }).click()
   await expect(page.getByText('当前没有失败邮件')).toBeVisible()
@@ -596,5 +596,5 @@ test('administrators can enable unassigned mail from system settings', async ({ 
   await page.getByRole('checkbox', { name: '开启无人收件' }).click()
   await expect.poll(() => state.unassignedMailEnabled).toBe(true)
   await expect(page.getByText('无人收件已开启')).toBeVisible()
-  await expect(page.getByText('发现新版本 v0.2.0')).toBeVisible()
+  await expect(page.getByRole('main').getByText('发现新版本 v0.2.0')).toBeVisible()
 })

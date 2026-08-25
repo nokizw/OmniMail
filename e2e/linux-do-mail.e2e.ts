@@ -16,7 +16,7 @@ async function mockLinuxDoMail(page: Page, options: { rejectCredentialUpdate?: b
     localStorage.setItem('omnimail.deployment-guide.v1', 'seen')
     localStorage.setItem('omnimail-locale', 'zh-CN')
   })
-  await page.route('**/api/**', async (route) => {
+  await page.route('**://*/api/**', async (route) => {
     const request = route.request()
     const url = new URL(request.url())
     const path = url.pathname
@@ -92,7 +92,8 @@ async function mockLinuxDoMail(page: Page, options: { rejectCredentialUpdate?: b
     if (path === '/api/linux-do-mail/inbox/42') return json(route, { message: {
       id: '42', from: 'Linux DO <notice@linux.do>', to: 'member@linux.do',
       subject: '欢迎回来', date: '2026-08-22T00:00:00.000Z',
-      preview: '完整邮件内容', body: '完整邮件内容', html: '', isRead: true,
+      preview: '完整邮件内容', body: '完整邮件内容',
+      html: `<p>完整邮件内容</p>${'<p>Linux DO message details</p>'.repeat(80)}`, isRead: true,
     } })
     if (path === '/api/linux-do-mail/inbox') {
       const query = url.searchParams.get('q') || ''
@@ -121,6 +122,7 @@ test('connects a Linux DO mailbox with username and password and reads mail', as
   const state = await mockLinuxDoMail(page)
   await page.goto('/linux-do-mail')
 
+  await expect(page.getByRole('button', { name: '回到列表顶部：Linux DO' })).toBeVisible()
   await expect(page.getByRole('heading', { name: '还没有连接 Linux DO 邮箱' })).toBeVisible()
   await expect(page.locator('.reader-pane')).toHaveCount(1)
   await expect(page.getByRole('button', { name: '添加 Linux DO 邮箱账号' })).toBeVisible()
@@ -155,7 +157,8 @@ test('connects a Linux DO mailbox with username and password and reads mail', as
   await expect(page.getByText('欢迎回来')).toBeVisible()
 
   const accountTrigger = page.getByRole('button', { name: '管理 Linux DO 账号' })
-  await expect(page.locator('.icloud-header-action-buttons > button')).toHaveCount(3)
+  await expect(page.locator('.icloud-header-action-buttons > button')).toHaveCount(4)
+  await expect(page.getByRole('button', { name: '复制邮箱地址：member@linux.do' })).toBeVisible()
   await accountTrigger.click()
   const credentialDialog = page.getByRole('dialog', { name: 'Linux DO 账号管理' })
   const verifyButton = credentialDialog.getByRole('button', { name: '立即验证' })
@@ -222,7 +225,20 @@ test('connects a Linux DO mailbox with username and password and reads mail', as
   await folders.getByRole('button', { name: '收件箱' }).click()
 
   await page.getByRole('button', { name: /欢迎回来/ }).click()
-  await expect(page.getByText('完整邮件内容', { exact: true })).toBeVisible()
+  const inboxReader = page.locator('.reader-pane')
+  await expect(inboxReader.frameLocator('iframe')
+    .getByText('完整邮件内容', { exact: true })).toBeVisible()
+  const readerContent = page.locator('.icloud-reader .reader-content')
+  await readerContent.evaluate((element) => { element.scrollTop = element.scrollHeight })
+  const toolbarSubject = page.getByRole('button', { name: '回到顶部：欢迎回来' })
+  const readerScrollTop = page.locator('.icloud-reader .reader-scroll-top')
+  await expect(toolbarSubject).toBeVisible()
+  await expect(readerScrollTop).toHaveClass(/is-visible/)
+  await toolbarSubject.click()
+  await expect.poll(() => readerContent.evaluate((element) => element.scrollTop)).toBe(0)
+  await readerContent.evaluate((element) => { element.scrollTop = element.scrollHeight })
+  await readerScrollTop.click()
+  await expect.poll(() => readerContent.evaluate((element) => element.scrollTop)).toBe(0)
 
   await expect(page.getByRole('button', { name: '返回邮件列表' })).toBeVisible()
   expect(await page.evaluate(() => (

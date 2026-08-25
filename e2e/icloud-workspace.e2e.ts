@@ -49,7 +49,7 @@ async function mockICloud(page: Page, options: {
       value: { writeText: async () => undefined },
     })
   })
-  await page.route('**/api/**', async (route) => {
+  await page.route('**://*/api/**', async (route) => {
     const request = route.request()
     const url = new URL(request.url())
     const path = url.pathname
@@ -159,7 +159,7 @@ async function mockICloud(page: Page, options: {
       id: '42', from: 'GitHub <noreply_at_github_com_22h56q5td86002_47bfb5aa@icloud.com>', to: 'shop@icloud.com',
       subject: 'Your receipt', date: '2026-08-13T00:00:00.000Z',
       preview: 'Thanks for your order.', body: 'Full receipt body.',
-      html: '<html><body><img src="https://github.com/logo.png" alt="GitHub"><h1>Full receipt body.</h1><p><a href="https://github.com/account_verifications">Open receipt</a></p><script>document.body.textContent="unsafe"</script></body></html>',
+      html: `<html><body><img src="https://github.com/logo.png" alt="GitHub"><h1>Full receipt body.</h1><p><a href="https://github.com/account_verifications">Open receipt</a></p>${'<p>Receipt details</p>'.repeat(80)}<script>document.body.textContent="unsafe"</script></body></html>`,
       } })
     }
     return route.abort()
@@ -176,6 +176,7 @@ test('iCloud workspace is available to a regular user and reads a message', asyn
   const state = await mockICloud(page)
   await page.goto('/icloud')
 
+  await expect(page.getByRole('button', { name: '回到列表顶部：iCloud' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'iCloud', exact: true })).toBeVisible()
   await expect(page.getByText('Personal')).toBeVisible()
   await expect(page.getByText('Your receipt')).toBeVisible()
@@ -287,6 +288,18 @@ test('iCloud workspace is available to a regular user and reads a message', asyn
   await expect(messageFrame.getByRole('heading', { name: 'Full receipt body.' })).toBeVisible()
   await expect(messageFrame.getByRole('img', { name: 'GitHub' })).toHaveJSProperty('naturalWidth', 120)
   await expect(messageFrame.getByText('unsafe')).toHaveCount(0)
+  const readerContent = page.locator('.icloud-reader .reader-content')
+  await readerContent.evaluate((element) => { element.scrollTop = element.scrollHeight })
+  const toolbarSubject = page.getByRole('button', { name: '回到顶部：Your receipt' })
+  const readerScrollTop = page.locator('.icloud-reader .reader-scroll-top')
+  await expect(toolbarSubject).toBeVisible()
+  await expect(readerScrollTop).toHaveClass(/is-visible/)
+  await toolbarSubject.click()
+  await expect.poll(() => readerContent.evaluate((element) => element.scrollTop)).toBe(0)
+  await readerContent.evaluate((element) => { element.scrollTop = element.scrollHeight })
+  await expect(readerScrollTop).toHaveClass(/is-visible/)
+  await readerScrollTop.click()
+  await expect.poll(() => readerContent.evaluate((element) => element.scrollTop)).toBe(0)
   await messageFrame.getByRole('link', { name: 'Open receipt' }).click()
   const externalLink = page.getByRole('alertdialog')
   await expect(externalLink).toContainText('github.com')
@@ -335,7 +348,7 @@ test('rejects an iCloud account without membership access without signing out', 
 
   await page.getByRole('button', { name: '添加 iCloud 账号' }).click()
   const dialog = page.getByRole('dialog', { name: '添加 iCloud 账号' })
-  await expect(dialog).toContainText('仅支持已开通 iCloud+ 且具有 Hide My Email 权限的账号')
+  await expect(dialog).toContainText('Cookie 仅用于管理隐藏邮箱')
   await dialog.getByRole('textbox', { name: '账号名称' }).fill('Web only')
   await dialog.locator('textarea').fill('session=web-only')
   await dialog.getByRole('button', { name: '验证并添加' }).click()
@@ -355,7 +368,7 @@ test('adds optional IMAP credentials together with an iCloud account', async ({ 
   await page.getByRole('button', { name: '添加 iCloud 账号' }).click()
   const dialog = page.getByRole('dialog', { name: '添加 iCloud 账号' })
   const warning = dialog.locator('.icloud-account-warning')
-  await expect(warning).toContainText('仅网页访问账号无法使用')
+  await expect(warning).toContainText('至少配置一种')
   expect(Number.parseFloat(await warning.evaluate((element) => getComputedStyle(element).fontSize)))
     .toBeGreaterThanOrEqual(13)
   await page.setViewportSize({ width: 375, height: 812 })
