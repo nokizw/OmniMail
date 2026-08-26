@@ -127,6 +127,24 @@ Serverless Webmail：
   [Google 应用专用密码](https://myaccount.google.com/apppasswords)手动撤销对应密码。
 - 个人 Gmail 的 IMAP 默认开启；Workspace 是否允许第三方 IMAP 和应用密码仍由组织策略决定。
 
+### Microsoft 邮箱（仅已读写入）
+
+- 每个 OmniMail 用户可连接多个 Outlook.com、Hotmail、Live，或租户允许 IMAP 的
+  Microsoft 365 委托式账号；首期只支持 Azure Global。
+- OAuth2 是唯一认证路径：Worker 只向 Microsoft 官方 token endpoint 兑换 access token，随后
+  固定连接 `outlook.office365.com:993` 并使用 IMAP XOAUTH2。仅邮箱密码导入与 LOGIN 已停用。
+- 工作区可以聚合 INBOX，也可选择单账号的服务器文件夹，按 1–200 条读取元数据。全部范围可把
+  所有账号逐个加入同步 Queue，单账号范围可直接刷新当前文件夹；复制按钮在全部范围默认复制
+  第一个账号邮箱。正文、CID 图片与最大 5 MiB 附件仅在打开时通过 `BODY.PEEK[]` 读取，不长期保存。
+- Cron 约每 5 分钟将到期 INBOX 同步加入 Queue；这是定时收信，不是秒级推送。打开未读邮件会在
+  正文读取成功后同步 `\Seen`；除此之外不提供发信、删除、移动、归档或星标等远端写操作。
+- refresh token、短期 access token与经确认留存的四字段组合 password 使用独立
+  `MICROSOFT_CREDENTIALS_KEY` 进行 AES-GCM 加密；组合 password 不参与认证，API、日志与审计
+  记录也不会返回敏感凭据。
+
+详细部署、OAuth scope、导入格式与真实账号验收步骤见
+[Microsoft 邮箱设置指南](docs/MICROSOFT_SETUP.md)。
+
 ### 多域名与用户
 
 - 多域名集中管理，支持启用、停用和安全删除
@@ -354,6 +372,8 @@ Worker 文件，剩余路径仍会匹配 `*` 并正常部署。Build watch paths
 | `LINUX_DO_MAIL_CREDENTIALS_KEY` | Secret | 至少 32 字节，用于加密 Linux DO Mail 密码或认证令牌；不使用该功能时可留空 |
 | `GMAIL_CREDENTIALS_KEY` | Secret | 至少 32 字节，只用于加密 Gmail 应用专用密码；不使用该功能时可留空 |
 | `GMAIL_IMAP_ENABLED` | Text | 可选紧急功能开关；设为 `false` 时隐藏并停止 Gmail 接入，默认启用 |
+| `MICROSOFT_CREDENTIALS_KEY` | Secret | 至少 32 字节，用于加密 Microsoft OAuth token 与可选组合 password；不使用该功能时可留空 |
+| `MICROSOFT_MAIL_ENABLED` | Text | 可选紧急功能开关；设为 `false` 时隐藏并停止 Microsoft 接入，默认启用 |
 | `CLOUDFLARE_ACCOUNT_ID` | Text | 可选备份所需的 Cloudflare Account ID |
 | `UPDATE_REPOSITORY` | Text | Release 来源仓库，默认 `mibgb65-cloud/OmniMail` |
 | `D1_DATABASE_ID` | Text | 可选备份所需的生产 D1 Database ID |
@@ -478,6 +498,13 @@ Builds 检测到分支更新后会自动构建、迁移并重新部署。
 `GMAIL_CREDENTIALS_KEY`，部署并完成 D1 迁移。用户随后从左侧 Gmail 入口创建或粘贴一个
 Google 应用专用密码；连接验证成功后，Worker 会异步建立最近邮件索引。管理员可在
 **系统设置 → 邮箱功能入口** 中隐藏或恢复入口，隐藏不会删除已保存账号或索引。
+
+若要启用独立的 **Microsoft 邮箱**，配置至少 32 字节的
+`MICROSOFT_CREDENTIALS_KEY`，部署并应用 `0027_microsoft_imap.sql` 与
+`0028_microsoft_oauth_combination_password.sql`。用户使用 OAuth2 refresh token + Client ID
+连接；不再接受仅邮箱密码登录。四字段组合 password 经确认后独立加密留存，但不参与认证。
+Worker 只访问 Microsoft 官方 OAuth 与 IMAP 端点；批量导入文本会在浏览器中解析为结构化字段，
+不会发送给第三方服务。管理员同样可在 **系统设置 → 邮箱功能入口** 中隐藏入口。
 
 ### 备份、保留与配额
 
