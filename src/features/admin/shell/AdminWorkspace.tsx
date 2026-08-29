@@ -242,6 +242,8 @@ export function AdminWorkspace({
           gmailWorkspaceEnabled={config.gmailWorkspaceEnabled}
           microsoftWorkspaceEnabled={config.microsoftWorkspaceEnabled}
           qqMailWorkspaceEnabled={config.qqMailWorkspaceEnabled}
+          naverMailWorkspaceEnabled={config.naverMailWorkspaceEnabled}
+          yandexMailWorkspaceEnabled={config.yandexMailWorkspaceEnabled}
           onChange={(settings) => onConfigChange({ ...config, ...settings })}
         />
 

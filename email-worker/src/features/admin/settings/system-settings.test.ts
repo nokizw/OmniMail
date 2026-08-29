@@ -71,6 +71,8 @@ describe('mail workspace entry settings', () => {
           gmailWorkspaceEnabled: false,
           microsoftWorkspaceEnabled: false,
           qqMailWorkspaceEnabled: false,
+          naverMailWorkspaceEnabled: false,
+          yandexMailWorkspaceEnabled: false,
         }),
       }),
       '127.0.0.1',
@@ -80,7 +82,7 @@ describe('mail workspace entry settings', () => {
     expect(batch).not.toHaveBeenCalled()
   })
 
-  it('persists both entry switches atomically for administrators', async () => {
+  it('persists all entry switches atomically for administrators', async () => {
     const statements: Array<{ sql: string; bindings: unknown[] }> = []
     const db = {
       prepare: vi.fn((sql: string) => ({
@@ -103,6 +105,8 @@ describe('mail workspace entry settings', () => {
           gmailWorkspaceEnabled: true,
           microsoftWorkspaceEnabled: true,
           qqMailWorkspaceEnabled: true,
+          naverMailWorkspaceEnabled: true,
+          yandexMailWorkspaceEnabled: true,
         }),
       }),
       '127.0.0.1',
@@ -115,6 +119,8 @@ describe('mail workspace entry settings', () => {
       gmailWorkspaceEnabled: true,
       microsoftWorkspaceEnabled: true,
       qqMailWorkspaceEnabled: true,
+      naverMailWorkspaceEnabled: true,
+      yandexMailWorkspaceEnabled: true,
     })
     expect(db.batch).toHaveBeenCalledOnce()
     expect(statements.some(({ bindings }) => (
@@ -131,6 +137,12 @@ describe('mail workspace entry settings', () => {
     ))).toBe(true)
     expect(statements.some(({ bindings }) => (
       bindings[0] === 'qq_mail_workspace_enabled' && bindings[1] === '1'
+    ))).toBe(true)
+    expect(statements.some(({ bindings }) => (
+      bindings[0] === 'naver_mail_workspace_enabled' && bindings[1] === '1'
+    ))).toBe(true)
+    expect(statements.some(({ bindings }) => (
+      bindings[0] === 'yandex_mail_workspace_enabled' && bindings[1] === '1'
     ))).toBe(true)
   })
 })

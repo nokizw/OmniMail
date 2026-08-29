@@ -3,6 +3,8 @@ import { useState } from 'react'
 import { api } from '../../../shared/api'
 import { t } from '../../../shared/i18n'
 import { QqMailIcon } from '../../qq-mail/components/QqMailIcon'
+import { NaverMailIcon } from '../../naver-mail/components/NaverMailIcon'
+import { YandexMailIcon } from '../../yandex-mail/components/YandexMailIcon'
 
 export function MailWorkspaceSettings({
   iCloudWorkspaceEnabled,
@@ -10,6 +12,8 @@ export function MailWorkspaceSettings({
   gmailWorkspaceEnabled,
   microsoftWorkspaceEnabled,
   qqMailWorkspaceEnabled,
+  naverMailWorkspaceEnabled,
+  yandexMailWorkspaceEnabled,
   onChange,
 }: {
   iCloudWorkspaceEnabled: boolean
@@ -17,25 +21,31 @@ export function MailWorkspaceSettings({
   gmailWorkspaceEnabled: boolean
   microsoftWorkspaceEnabled: boolean
   qqMailWorkspaceEnabled: boolean
+  naverMailWorkspaceEnabled: boolean
+  yandexMailWorkspaceEnabled: boolean
   onChange: (settings: {
     iCloudWorkspaceEnabled: boolean
     linuxDoMailWorkspaceEnabled: boolean
     gmailWorkspaceEnabled: boolean
     microsoftWorkspaceEnabled: boolean
     qqMailWorkspaceEnabled: boolean
+    naverMailWorkspaceEnabled: boolean
+    yandexMailWorkspaceEnabled: boolean
   }) => void
 }) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
 
-  async function toggle(target: 'icloud' | 'linuxdo' | 'gmail' | 'microsoft' | 'qq-mail') {
+  async function toggle(target: 'icloud' | 'linuxdo' | 'gmail' | 'microsoft' | 'qq-mail' | 'naver-mail' | 'yandex-mail') {
     const previous = {
       iCloudWorkspaceEnabled,
       linuxDoMailWorkspaceEnabled,
       gmailWorkspaceEnabled,
       microsoftWorkspaceEnabled,
       qqMailWorkspaceEnabled,
+      naverMailWorkspaceEnabled,
+      yandexMailWorkspaceEnabled,
     }
     const next = {
       iCloudWorkspaceEnabled: target === 'icloud'
@@ -53,6 +63,12 @@ export function MailWorkspaceSettings({
       qqMailWorkspaceEnabled: target === 'qq-mail'
         ? !qqMailWorkspaceEnabled
         : qqMailWorkspaceEnabled,
+      naverMailWorkspaceEnabled: target === 'naver-mail'
+        ? !naverMailWorkspaceEnabled
+        : naverMailWorkspaceEnabled,
+      yandexMailWorkspaceEnabled: target === 'yandex-mail'
+        ? !yandexMailWorkspaceEnabled
+        : yandexMailWorkspaceEnabled,
     }
     setSaving(true)
     setError('')
@@ -80,6 +96,28 @@ export function MailWorkspaceSettings({
         </div>
       </header>
       <div className="mail-workspace-entry-list" aria-busy={saving}>
+        <label className="policy-toggle">
+          <span><YandexMailIcon width={17} height={17} aria-hidden="true" /><span>
+            <strong>{t('Yandex 邮箱入口')}</strong>
+            <small>{t(yandexMailWorkspaceEnabled
+              ? '所有已登录用户都能从导航进入'
+              : '入口已隐藏，已保存的 Yandex 邮箱账号和索引不会删除')}</small>
+          </span></span>
+          <input type="checkbox" checked={yandexMailWorkspaceEnabled} disabled={saving}
+            aria-label={t('Yandex 邮箱入口')}
+            onChange={() => void toggle('yandex-mail')} />
+        </label>
+        <label className="policy-toggle">
+          <span><NaverMailIcon width={17} height={17} aria-hidden="true" /><span>
+            <strong>{t('NAVER 邮箱入口')}</strong>
+            <small>{t(naverMailWorkspaceEnabled
+              ? '所有已登录用户都能从导航进入'
+              : '入口已隐藏，已保存的 NAVER 邮箱账号和索引不会删除')}</small>
+          </span></span>
+          <input type="checkbox" checked={naverMailWorkspaceEnabled} disabled={saving}
+            aria-label={t('NAVER 邮箱入口')}
+            onChange={() => void toggle('naver-mail')} />
+        </label>
         <label className="policy-toggle">
           <span><QqMailIcon width={17} height={17} aria-hidden="true" /><span>
             <strong>{t('QQ 邮箱入口')}</strong>

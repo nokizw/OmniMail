@@ -18,10 +18,13 @@ export interface SearchIndexJob {
   messageId: string
 }
 
+export type MailSyncLimit = 10 | 20 | 50
+
 export interface GmailSyncJob {
   kind: 'gmail-sync'
   accountId: string
   reason: 'connect' | 'manual' | 'scheduled'
+  limit?: MailSyncLimit
 }
 
 export interface MicrosoftSyncJob {
@@ -34,6 +37,19 @@ export interface QqMailSyncJob {
   kind: 'qq-mail-sync'
   accountId: string
   reason: 'connect' | 'manual' | 'scheduled'
+  limit?: MailSyncLimit
+}
+
+export interface NaverMailSyncJob {
+  kind: 'naver-mail-sync'
+  accountId: string
+  reason: 'connect' | 'manual' | 'scheduled'
+}
+
+export interface YandexMailSyncJob {
+  kind: 'yandex-mail-sync'
+  accountId: string
+  reason: 'connect' | 'manual' | 'scheduled'
 }
 
 export type MailQueueJob =
@@ -43,6 +59,8 @@ export type MailQueueJob =
   | GmailSyncJob
   | MicrosoftSyncJob
   | QqMailSyncJob
+  | NaverMailSyncJob
+  | YandexMailSyncJob
 
 export interface BackupWorkflowParams {
   trigger?: 'scheduled' | 'manual' | 'enable'
@@ -88,6 +106,10 @@ export interface Env {
   MICROSOFT_MAIL_ENABLED?: string
   QQ_MAIL_CREDENTIALS_KEY?: string
   QQ_MAIL_IMAP_ENABLED?: string
+  NAVER_MAIL_CREDENTIALS_KEY?: string
+  NAVER_MAIL_IMAP_ENABLED?: string
+  YANDEX_MAIL_CREDENTIALS_KEY?: string
+  YANDEX_MAIL_IMAP_ENABLED?: string
   TURNSTILE_SITE_KEY?: string
   TURNSTILE_SECRET_KEY?: string
   LINUX_DO_CLIENT_ID?: string

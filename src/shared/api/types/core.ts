@@ -13,6 +13,10 @@ export interface AppConfig {
   microsoftWorkspaceEnabled: boolean
   qqMailEnabled: boolean
   qqMailWorkspaceEnabled: boolean
+  naverMailEnabled: boolean
+  naverMailWorkspaceEnabled: boolean
+  yandexMailEnabled: boolean
+  yandexMailWorkspaceEnabled: boolean
   registrationEnabled: boolean
   registrationAvailable: boolean
   registrationMethod: RegistrationMethod
@@ -74,6 +78,7 @@ export interface RegistrationDomainPolicy {
 }
 
 export type MailRefreshInterval = 0 | 5 | 10 | 30 | 60 | 120
+export type MailSyncLimit = 10 | 20 | 50
 
 export type UserRole = 'super_admin' | 'admin' | 'user' | 'temporary'
 

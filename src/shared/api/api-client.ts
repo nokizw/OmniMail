@@ -50,6 +50,8 @@ import { createLinuxDoMailApi } from '../../features/linux-do-mail/api/linux-do-
 import { createGmailApi } from '../../features/gmail/api/gmail-api-client'
 import { createMicrosoftApi } from '../../features/microsoft/api/microsoft-api-client'
 import { createQqMailApi } from '../../features/qq-mail/api/qq-mail-api-client'
+import { createNaverMailApi } from '../../features/naver-mail/api/naver-mail-api-client'
+import { createYandexMailApi } from '../../features/yandex-mail/api/yandex-mail-api-client'
 import { createMailApi } from '../../features/mailbox/api/mail-api-client'
 
 export class ApiError extends Error {
@@ -170,12 +172,16 @@ export const api = {
     gmailWorkspaceEnabled: boolean
     microsoftWorkspaceEnabled: boolean
     qqMailWorkspaceEnabled: boolean
+    naverMailWorkspaceEnabled: boolean
+    yandexMailWorkspaceEnabled: boolean
   }) => request<{
     iCloudWorkspaceEnabled: boolean
     linuxDoMailWorkspaceEnabled: boolean
     gmailWorkspaceEnabled: boolean
     microsoftWorkspaceEnabled: boolean
     qqMailWorkspaceEnabled: boolean
+    naverMailWorkspaceEnabled: boolean
+    yandexMailWorkspaceEnabled: boolean
   }>('/api/admin/settings/mail-workspaces', {
     method: 'PATCH',
     body: jsonBody(settings),
@@ -443,4 +449,6 @@ export const api = {
   ...createGmailApi(request, jsonBody),
   ...createMicrosoftApi(request, jsonBody),
   ...createQqMailApi(request, jsonBody),
+  ...createNaverMailApi(request, jsonBody),
+  ...createYandexMailApi(request, jsonBody),
 }

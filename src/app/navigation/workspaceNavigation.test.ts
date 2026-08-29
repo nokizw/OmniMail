@@ -43,6 +43,10 @@ describe('workspace routes', () => {
       kind: 'admin',
       view: 'microsoft',
     })
+    expect(workspaceRoute('/naver-mail', 'user')).toMatchObject({
+      kind: 'folder',
+      folder: 'inbox',
+    })
   })
 
   it('falls back to the inbox for unknown or unauthorized paths', () => {
@@ -70,6 +74,8 @@ describe('workspace routes', () => {
       gmailWorkspaceEnabled: false,
       microsoftWorkspaceEnabled: false,
       qqMailWorkspaceEnabled: false,
+      naverMailWorkspaceEnabled: false,
+      yandexMailWorkspaceEnabled: false,
     }
     expect(workspaceRoute('/icloud', 'user', disabled)).toMatchObject({
       kind: 'folder', folder: 'inbox', path: '/mail/inbox',
@@ -86,5 +92,19 @@ describe('workspace routes', () => {
     expect(workspaceRoute('/qq-mail', 'user', disabled)).toMatchObject({
       kind: 'folder', folder: 'inbox', path: '/mail/inbox',
     })
+    expect(workspaceRoute('/naver-mail', 'user', disabled)).toMatchObject({
+      kind: 'folder', folder: 'inbox', path: '/mail/inbox',
+    })
+    expect(workspaceRoute('/yandex-mail', 'user', disabled)).toMatchObject({
+      kind: 'folder', folder: 'inbox', path: '/mail/inbox',
+    })
+    expect(workspaceRoute('/naver-mail', 'user', {
+      ...disabled,
+      naverMailWorkspaceEnabled: true,
+    })).toMatchObject({ kind: 'admin', view: 'naver-mail' })
+    expect(workspaceRoute('/yandex-mail', 'user', {
+      ...disabled,
+      yandexMailWorkspaceEnabled: true,
+    })).toMatchObject({ kind: 'admin', view: 'yandex-mail' })
   })
 })

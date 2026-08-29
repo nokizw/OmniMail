@@ -10,6 +10,8 @@ import { enLinuxDoMail } from './linux-do-mail'
 import { enMailFeatures } from './mail-features'
 import { enMailWorkspaces } from './mail-workspaces'
 import { enMicrosoft } from './microsoft'
+import { enNaverMail } from './naver-mail'
+import { enYandexMail } from './yandex-mail'
 import { enMailboxSettings } from './mailbox-settings'
 import { enOauth } from './oauth'
 import { enRateLimit } from './rate-limit'
@@ -34,6 +36,8 @@ export const englishTranslations: Record<string, string> = {
   ...enLinuxDoMail,
   ...enGmail,
   ...enMicrosoft,
+  ...enNaverMail,
+  ...enYandexMail,
   ...enQqMail,
   ...enApi,
 }
