@@ -337,9 +337,13 @@ Content-Type: application/json
 
 Worker 同时验证请求 Origin、客户端 ID、精确回调地址、PKCE、有效期和单次使用状态，
 成功后返回与设备令牌接口相同的 Access Token、轮换 Refresh Token 和用户信息。
-扩展令牌只包含 `domains:read`、`mailboxes:read`、`mailboxes:create`、
-`messages:read` 与 `messages:mark-read`。最后一项只接受请求体恰好为
-`{ "isRead": true }` 的邮件更新；管理、发信、删除、原文下载及账户接口返回 `403`。
+扩展令牌只包含实际界面使用的最小 Scope：普通邮箱域名、地址创建、收件和精确已读，
+iCloud 账号公开元数据、隐藏地址读取/创建和来信读取，以及 Linux DO、Gmail、Microsoft、
+QQ、NAVER 与 Yandex 账号公开元数据、邮件列表和正文读取。`messages:mark-read` 只接受请求
+体恰好为 `{ "isRead": true }` 的普通邮件更新；第三方账号连接/修改、主动同步、文件夹、
+附件、身份管理、发信、删除、原文下载及账户设置接口返回 `403`。从旧版 Float 升级时，
+原 Refresh Token 保留旧 Scope，用户必须在网站明确确认一次扩展升级授权，服务端不会
+在刷新时静默扩大权限。
 
 ## 游标分页
 
@@ -551,6 +555,10 @@ Content-Type: application/json
 GET /api/admin/audit-logs?days=7&category=auth&q=example.com&limit=50
 Authorization: Bearer om_at_...
 ```
+
+QQ 邮箱操作可使用 `category=qq-mail` 独立筛选。账号连接、重命名、授权码更新、验证、
+断开、身份增删、手动同步请求和发信都会记录操作者与脱敏账号信息；首次或手动同步结果还会
+记录同步来源、阶段、错误码、尝试次数、拉取数量、耗时和是否继续重试。
 
 `days` 支持 `1`、`7`、`30`、`90`；`category` 支持 `all`、`auth`、
 `account`、`user`、`mailbox`、`domain`、`invitation`、`message` 和
