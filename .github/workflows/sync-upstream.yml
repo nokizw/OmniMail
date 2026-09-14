@@ -27,12 +27,21 @@ jobs:
       - name: Sync fork with mibgb65-cloud/OmniMail
         id: sync
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.SYNC_GITHUB_TOKEN }}
         run: |
           set -euo pipefail
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "::error::Missing repository secret SYNC_GITHUB_TOKEN."
+            echo "Default GITHUB_TOKEN cannot create or update files under .github/workflows."
+            echo "Create a classic PAT with repo + workflow, or a fine-grained PAT with Contents and Workflows read/write on this repository, then:"
+            echo "  gh secret set SYNC_GITHUB_TOKEN -R ${GITHUB_REPOSITORY}"
+            exit 1
+          fi
           before="$(gh api "repos/${GITHUB_REPOSITORY}/commits/main" --jq .sha)"
           if ! result="$(gh api --method POST "repos/${GITHUB_REPOSITORY}/merge-upstream" -f branch=main)"; then
-            echo "Upstream sync failed. If GitHub reports conflicts, open a Pull Request and merge it by hand."
+            echo "Upstream sync failed."
+            echo "If GitHub reports conflicts, open a Pull Request and merge it by hand."
+            echo "If the error mentions workflows permission, SYNC_GITHUB_TOKEN is missing the workflow scope."
             exit 1
           fi
           echo "$result"
