@@ -2,7 +2,7 @@
 
 # OmniMail 完整 HTTP API 参考
 
-当前 Worker 共公开 **169** 个 HTTP 端点。本文档由代码中的 API Catalog 自动生成，
+当前 Worker 共公开 **173** 个 HTTP 端点。本文档由代码中的 API Catalog 自动生成，
 与 Webmail `/settings/api` 使用同一份数据源。架构、安全模型、限速和数据生命周期说明见
 [`docs/API.md`](../API.md)。
 
@@ -33,8 +33,8 @@ Webhook 端点按文档示例提交 Svix 签名头。除公开端点外，服务
 
 | 方法 | 数量 |
 | --- | ---: |
-| `GET` | 63 |
-| `POST` | 53 |
+| `GET` | 66 |
+| `POST` | 55 |
 | `DELETE` | 17 |
 | `PATCH` | 26 |
 | `PUT` | 9 |
@@ -44,7 +44,7 @@ Webhook 端点按文档示例提交 Svix 签名头。除公开端点外，服务
 | 分类 | 端点数 | 说明 |
 | --- | ---: | --- |
 | [系统与公开入口](system.md) | 8 | 健康检查、初始化、注册、邀请落地、代理与 Webhook。 |
-| [认证与账户](authentication.md) | 20 | 网页登录、设备令牌、MFA、扩展授权和账户生命周期。 |
+| [认证与账户](authentication.md) | 22 | 网页登录、设备令牌、MFA、扩展授权和账户生命周期。 |
 | [域名与邮箱地址](mailboxes.md) | 5 | 读取域名并创建、启停、切换或删除邮箱地址。 |
 | [邮件](messages.md) | 11 | 列表、详情、状态、附件、原文、发信、回复和翻译。 |
 | [草稿与附件](drafts.md) | 8 | 服务端草稿的创建、保存、附件和幂等发送。 |
@@ -57,7 +57,7 @@ Webhook 端点按文档示例提交 Svix 签名头。除公开端点外，服务
 | [Linux DO 邮箱](linux-do-mail.md) | 10 | 加密连接 Linux DO Mail，按需读取 INBOX 并通过官方 SMTP 发件。 |
 | [管理员：运营与邮件](admin-operations.md) | 12 | 统计、审计、失败邮件、全站邮件和安全清理。 |
 | [管理员：用户与访问](admin-access.md) | 11 | 邀请、用户、用户限速和收件域名管理。 |
-| [管理员：设置、备份与版本](admin-settings.md) | 17 | 全局策略、存储、备份浏览和系统更新。 |
+| [管理员：设置、备份与版本](admin-settings.md) | 19 | 全局策略、存储、备份浏览和系统更新。 |
 
 ## 通用约定
 

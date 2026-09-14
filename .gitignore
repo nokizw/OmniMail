@@ -3,6 +3,7 @@ dist/
 dist-extension/
 release/
 .wrangler/
+.wrangler-deploy-*.json
 .env
 .env.*
 !.env.example

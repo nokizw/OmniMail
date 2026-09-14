@@ -1,3 +1,4 @@
+import { cachedNotification, cacheNotification, notificationStamp, notificationVersionStatement } from './notification-cache'
 import type { Env, SessionUser } from '../../app/types'
 
 const SOURCES = [
@@ -88,27 +89,32 @@ export async function listMailNotifications(
       { headers: { 'Cache-Control': 'private, no-store' } },
     )
   }
-  const messageSql = selected.map((source) => MESSAGE_SELECTS[source]).join(' UNION ALL ')
-  const messageBindings = selected.map(() => user.id)
-  const { results } = await env.DB.prepare(
-    `SELECT indexed.*, SUM(CASE WHEN indexed.is_read = 0 THEN 1 ELSE 0 END) OVER () AS unread_total
-       FROM (${messageSql}) indexed
-      ORDER BY message_date DESC, message_id DESC LIMIT ?`,
-  ).bind(...messageBindings, limit).all<NotificationRow>()
-
-  const external = selected.filter((source): source is Exclude<NotificationSource, 'omnimail'> => (
-    source !== 'omnimail'
-  ))
-  const available = external.length
-    ? (await env.DB.prepare(external.map((source) => SOURCE_SELECTS[source]).join(' UNION ALL '))
-      .bind(...external.map(() => user.id)).all<{ source: NotificationSource }>()).results
-      .map(({ source }) => source)
-    : []
-  const sources = [...new Set<NotificationSource>([
-    ...(selected.includes('omnimail') ? ['omnimail' as const] : []),
-    ...available,
-  ])]
-  return Response.json({
+  const versionStatement = notificationVersionStatement(env.DB, user.id, selected)
+  const initialVersions = await versionStatement.all<{ source: string; version: number }>()
+  const cacheKey = JSON.stringify([user.id, user.role, [...selected].sort(), limit])
+  const cached = cachedNotification(env.DB, cacheKey, notificationStamp(initialVersions.results))
+  if (cached) return Response.json(cached, { headers: { 'Cache-Control': 'private, no-store' } })
+  // 分来源查询避免 D1 复合 SELECT 项数上限；全部语句仍在同一批次中读取一致快照。
+  const statements = selected.flatMap((source) => [
+    env.DB.prepare(`${MESSAGE_SELECTS[source]} ORDER BY message_date DESC, message_id DESC, account_id LIMIT ?`).bind(user.id, limit),
+    env.DB.prepare(`SELECT COALESCE(SUM(CASE WHEN is_read=0 THEN 1 ELSE 0 END),0) AS unread_total FROM (${MESSAGE_SELECTS[source]})`).bind(user.id),
+    source === 'omnimail' ? env.DB.prepare("SELECT 'omnimail' AS source")
+      : env.DB.prepare(`${SOURCE_SELECTS[source]} LIMIT 1`).bind(user.id),
+  ])
+  const batch = await env.DB.batch([...statements, versionStatement])
+  const candidates: NotificationRow[] = []
+  const sources: NotificationSource[] = []
+  let unread = 0
+  for (let index = 0; index < selected.length; index++) {
+    candidates.push(...batch[index * 3].results as unknown as NotificationRow[])
+    unread += Number((batch[index * 3 + 1].results[0] as { unread_total: number }).unread_total)
+    if (batch[index * 3 + 2].results.length) sources.push(selected[index])
+  }
+  const compareText = (left: string, right: string) => left < right ? -1 : left > right ? 1 : 0
+  const results = candidates.sort((left, right) => right.message_date - left.message_date
+    || compareText(right.message_id, left.message_id) || compareText(left.source, right.source)
+    || compareText(left.account_id, right.account_id)).slice(0, limit)
+  const body = {
     messages: results.map((row) => ({
       source: row.source,
       accountId: row.account_id,
@@ -120,6 +126,8 @@ export async function listMailNotifications(
       isRead: Boolean(row.is_read),
     })),
     sources,
-    unread: Number(results[0]?.unread_total ?? results.filter(({ is_read }) => !is_read).length),
-  }, { headers: { 'Cache-Control': 'private, no-store' } })
+    unread,
+  }
+  cacheNotification(env.DB, cacheKey, notificationStamp(batch.at(-1)!.results as unknown as Array<{ source: string; version: number }>), body)
+  return Response.json(body, { headers: { 'Cache-Control': 'private, no-store' } })
 }

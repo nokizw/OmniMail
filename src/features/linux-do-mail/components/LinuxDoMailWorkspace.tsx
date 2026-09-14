@@ -400,7 +400,7 @@ export function LinuxDoMailWorkspace({ remoteImagesEnabled, canSend }: {
         {error && <p className="list-error" role="alert"><AlertCircle size={15} />{error}</p>}
         {loading ? <div className="icloud-loading"><Spinner size={22} />{t('正在读取 Linux DO Mail 配置…')}</div>
           : !enabled ? <Empty icon={<KeyRound size={24} />} title={t('Linux DO Mail 功能尚未启用')}
-            description={t('在 Worker Variables & Secrets 中配置至少 32 字节的 LINUX_DO_MAIL_CREDENTIALS_KEY，然后重新部署。')} />
+            description={t('在 Worker Variables & Secrets 中配置至少 32 字节的 MAIL_CREDENTIALS_KEY，然后重新部署。')} />
           : !account ? <Empty icon={<Mail size={24} />} title={t('还没有连接 Linux DO 邮箱')}
             description={t('连接后即可在 OmniMail 中收件、搜索，并通过官方 SMTP 安全发信。')}
             action={<button className="button button--primary" type="button"

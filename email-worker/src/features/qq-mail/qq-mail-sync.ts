@@ -1,3 +1,4 @@
+import { canonicalMailFlags, changedIndexFields, needsIndexTrim, rememberIndexTrim } from '../../platform/imap/index-writes'
 import { ImapConnectionError } from '../../platform/imap/imap-errors'
 import {
   DEFAULT_MAIL_SYNC_LIMIT,
@@ -124,7 +125,7 @@ export function selectQqMailFetchUids(
   ])].sort((left, right) => left - right)
 }
 
-function messageStatement(
+export function messageStatement(
   env: Env,
   accountId: string,
   uidValidity: number,
@@ -145,13 +146,14 @@ function messageStatement(
       cc_json = excluded.cc_json,
       subject = excluded.subject,
       preview = excluded.preview,
-      internal_date = excluded.internal_date,
+      internal_date = ${message.internalDate ? 'excluded.internal_date' : 'internal_date'},
       size_bytes = excluded.size_bytes,
       flags_json = excluded.flags_json,
       is_read = excluded.is_read,
       is_starred = excluded.is_starred,
       has_attachments = excluded.has_attachments,
-      updated_at = excluded.updated_at`,
+      updated_at = excluded.updated_at
+    WHERE ${changedIndexFields('qq_mail_messages', ['message_id_header', 'sender_name', 'sender_address', 'recipients_json', 'cc_json', 'subject', 'preview', 'size_bytes', 'flags_json', 'is_read', 'is_starred', 'has_attachments', ...(message.internalDate ? ['internal_date'] : [])])}`,
   ).bind(
     `qq_msg_${crypto.randomUUID().replaceAll('-', '')}`,
     accountId,
@@ -166,7 +168,7 @@ function messageStatement(
     message.preview,
     message.internalDate || now,
     message.sizeBytes,
-    JSON.stringify(message.flags),
+    canonicalMailFlags(message.flags),
     Number(message.isRead),
     Number(message.isStarred),
     Number(message.hasAttachments),
@@ -279,13 +281,19 @@ export async function syncQqMailAccount(
     statements.push(...missing.map((uid) => env.DB.prepare(
       'DELETE FROM qq_mail_messages WHERE account_id = ? AND uid_validity = ? AND imap_uid = ?',
     ).bind(accountId, mailbox.uidValidity, uid)))
-    statements.push(env.DB.prepare(
-      `DELETE FROM qq_mail_messages
-        WHERE account_id = ? AND id NOT IN (
-          SELECT id FROM qq_mail_messages WHERE account_id = ?
-          ORDER BY internal_date DESC, id DESC LIMIT ?
-        )`,
-    ).bind(accountId, accountId, INDEX_MESSAGE_LIMIT))
+    const previousLastSeenUid = account.lastSeenUid
+    const trimScope = JSON.stringify(['qq-mail', accountId])
+    const trimNeeded = needsIndexTrim(env.DB, trimScope, INDEX_MESSAGE_LIMIT,
+      reset || metadata.some((message) => message.imapUid > previousLastSeenUid))
+    if (trimNeeded) {
+      statements.push(env.DB.prepare(
+        `DELETE FROM qq_mail_messages
+          WHERE account_id = ? AND id NOT IN (
+            SELECT id FROM qq_mail_messages WHERE account_id = ?
+            ORDER BY internal_date DESC, id DESC LIMIT ?
+          )`,
+      ).bind(accountId, accountId, INDEX_MESSAGE_LIMIT))
+    }
     statements.push(env.DB.prepare(
       `UPDATE qq_mail_accounts
           SET status = 'active', uid_validity = ?, uid_next = ?, last_seen_uid = ?,
@@ -305,6 +313,7 @@ export async function syncQqMailAccount(
     ))
     stage = 'persist'
     await env.DB.batch(statements)
+    if (trimNeeded) rememberIndexTrim(env.DB, trimScope, INDEX_MESSAGE_LIMIT)
     if (diagnostics.reason && diagnostics.reason !== 'scheduled') {
       logWorkerInfo('qq_mail_sync_completed', {
         account_id: accountId,

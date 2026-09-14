@@ -45,7 +45,7 @@ export class LinuxDoMailAccountStore {
     if (!linuxDoMailCredentialsReady(env)) {
       throw new LinuxDoMailStoreError(
         503,
-        'Linux DO Mail 功能尚未配置 LINUX_DO_MAIL_CREDENTIALS_KEY。',
+        'Linux DO Mail 功能尚未配置 MAIL_CREDENTIALS_KEY 或 LINUX_DO_MAIL_CREDENTIALS_KEY。',
       )
     }
   }

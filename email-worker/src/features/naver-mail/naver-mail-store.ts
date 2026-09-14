@@ -107,7 +107,7 @@ export class NaverMailAccountStore {
     if (!naverMailCredentialsReady(env)) {
       throw new NaverMailStoreError(
         503,
-        'NAVER 邮箱功能尚未配置 NAVER_MAIL_CREDENTIALS_KEY。',
+        'NAVER 邮箱功能尚未配置 MAIL_CREDENTIALS_KEY 或 NAVER_MAIL_CREDENTIALS_KEY。',
       )
     }
   }

@@ -53,7 +53,7 @@ describe('Linux DO Mail account API validation', () => {
     })
   })
 
-  it('requires the dedicated credential encryption key', async () => {
+  it('requires a global or dedicated credential encryption key', async () => {
     const response = await createLinuxDoMailAccount(
       {} as Env,
       user,
@@ -63,7 +63,7 @@ describe('Linux DO Mail account API validation', () => {
 
     expect(response.status).toBe(503)
     await expect(response.json()).resolves.toEqual({
-      error: 'Linux DO Mail 功能尚未配置 LINUX_DO_MAIL_CREDENTIALS_KEY。',
+      error: 'Linux DO Mail 功能尚未配置 MAIL_CREDENTIALS_KEY 或 LINUX_DO_MAIL_CREDENTIALS_KEY。',
     })
   })
 })

@@ -8,7 +8,7 @@
 
 > Web login, device tokens, MFA, extension authorization, and account lifecycle.
 
-本分类共 **20** 个端点。返回 [完整 API 索引](README.md) 或 [API 架构与安全说明](../API.md)。
+本分类共 **22** 个端点。返回 [完整 API 索引](README.md) 或 [API 架构与安全说明](../API.md)。
 
 <!-- endpoint:GET /api/auth/linux-do catalog:1671fbe74574 -->
 ## `GET /api/auth/linux-do`
@@ -522,5 +522,62 @@ curl --request DELETE \
   --header "Content-Type: application/json" \
   --data '{
   "code": "123456"
+}'
+```
+
+<!-- endpoint:GET /api/desktop/accounts catalog:db3a33743f69 -->
+## `GET /api/desktop/accounts`
+
+**桌面导入目录 / Desktop import catalog**
+
+仅设备令牌；返回当前用户的域名邮箱和可导入账号元数据，不解密凭据。
+
+> Device tokens only; list owned mailboxes and importable accounts without decrypting credentials.
+
+| 项目 | 内容 |
+| --- | --- |
+| 认证 | 登录用户；支持 Session Cookie 或 Access Token |
+| 请求 | No parameters |
+| 成功响应 | 200 · { accounts: [{ id, provider, email, name, ready, note }] } |
+
+### cURL 示例
+
+```bash
+curl --request GET \
+  --url "https://mail.example.com/api/desktop/accounts" \
+  --header "Authorization: Bearer om_at_..."
+```
+
+<!-- endpoint:POST /api/desktop/credentials catalog:4ab78051dbf3 -->
+## `POST /api/desktop/credentials`
+
+**导入所选邮箱凭据 / Import selected mailbox credentials**
+
+仅设备令牌；重新验证密码和 MFA，最多导出 50 个自有账号。返回应用密码、原 Microsoft OAuth 应用与刷新令牌，或用于本地管理隐藏地址的 iCloud 地区、Apple 账户和 Cookie。禁止缓存和记录响应。
+
+> Device tokens only; reverify password and MFA before exporting up to 50 owned accounts. Returns app passwords, original Microsoft OAuth credentials, or iCloud region, Apple account and cookies for local Hide My Email management. Do not cache or log the response.
+
+| 项目 | 内容 |
+| --- | --- |
+| 认证 | 登录用户；支持 Session Cookie 或 Access Token |
+| 请求 | JSON · password, mfaCode?, accounts: [{ provider, id }] |
+| 成功响应 | 200 · { accounts } |
+
+### cURL 示例
+
+```bash
+curl --request POST \
+  --url "https://mail.example.com/api/desktop/credentials" \
+  --header "Authorization: Bearer om_at_..." \
+  --header "Content-Type: application/json" \
+  --data '{
+  "password": "your-password",
+  "mfaCode": "123456",
+  "accounts": [
+    {
+      "provider": "gmail",
+      "id": "account-id"
+    }
+  ]
 }'
 ```

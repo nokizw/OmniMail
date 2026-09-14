@@ -101,262 +101,268 @@
     display: block;
     height: 100vh;
     height: 100dvh;
-    padding-bottom: 68px;
     overflow: hidden;
+  }
+
+  .mobile-sidebar-toggle {
+    position: fixed;
+    z-index: 70;
+    top: max(14px, env(safe-area-inset-top));
+    left: 14px;
+    display: grid;
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    place-items: center;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--surface) 94%, transparent);
+    color: var(--text);
+    cursor: pointer;
+    box-shadow: 0 8px 24px color-mix(in srgb, #000 10%, transparent);
+    touch-action: manipulation;
+    transition: background 160ms ease, color 160ms ease, box-shadow 160ms ease;
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+  }
+
+  .mobile-sidebar-toggle:hover {
+    background: var(--surface-hover);
+  }
+
+  .mobile-sidebar-toggle:active {
+    box-shadow: inset 0 0 0 1px var(--line);
+  }
+
+  .mobile-sidebar-toggle:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+
+  .mobile-sidebar-toggle[aria-expanded="true"] {
+    visibility: hidden;
+  }
+
+  .mail-layout.has-selection .mobile-sidebar-toggle,
+  .mail-layout:has(.icloud-mail-view.has-selection) .mobile-sidebar-toggle {
+    display: none;
+  }
+
+  .mobile-sidebar-backdrop {
+    position: fixed;
+    z-index: 80;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    background: color-mix(in srgb, #000 52%, transparent);
+    cursor: default;
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
+    transition: opacity 180ms ease-in, visibility 0s linear 220ms;
+  }
+
+  .mobile-sidebar-backdrop.is-open {
+    opacity: 1;
+    pointer-events: auto;
+    visibility: visible;
+    transition: opacity 220ms ease-out, visibility 0s;
   }
 
   .mail-sidebar {
     position: fixed;
-    z-index: 50;
-    right: 0;
+    z-index: 90;
+    top: 0;
     bottom: 0;
     left: 0;
     display: flex;
-    width: 100%;
-    height: 68px;
-    flex-direction: row;
-    align-items: center;
-    gap: 2px;
-    padding: 7px 9px max(7px, env(safe-area-inset-bottom));
-    overflow: visible;
-    border-top: 1px solid var(--line);
-    border-right: 0;
-    background: color-mix(in srgb, var(--surface) 92%, transparent);
+    width: min(86vw, 336px);
+    height: 100vh;
+    height: 100dvh;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: max(18px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+    overflow: hidden;
+    border-top: 0;
+    border-right: 1px solid var(--line);
+    background: color-mix(in srgb, var(--surface-muted) 97%, transparent);
+    box-shadow: 18px 0 48px color-mix(in srgb, #000 22%, transparent);
+    opacity: 0.96;
+    pointer-events: none;
     touch-action: manipulation;
-    backdrop-filter: blur(22px);
-    -webkit-backdrop-filter: blur(22px);
+    transform: translateX(calc(-100% - 20px));
+    visibility: hidden;
+    transition: transform 220ms ease-in, opacity 180ms ease-in,
+      visibility 0s linear 240ms;
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
   }
 
-  .mail-sidebar::-webkit-scrollbar {
-    display: none;
+  .mail-sidebar.is-mobile-open {
+    opacity: 1;
+    pointer-events: auto;
+    transform: none;
+    visibility: visible;
+    transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 220ms ease-out, visibility 0s;
   }
 
   .sidebar-brand {
-    display: none;
+    display: flex;
+    padding: 0 0 14px;
+  }
+
+  .sidebar-brand-links {
+    display: flex;
+  }
+
+  .sidebar-brand .brand > span:last-child {
+    display: inline;
+  }
+
+  .folder-nav button span,
+  .folder-nav button small,
+  .admin-nav button span,
+  .account-nav button span {
+    display: block;
+  }
+
+  .mail-sidebar .sidebar-account > div,
+  .mail-sidebar .account-avatar {
+    display: grid;
+  }
+
+  .mobile-sidebar-close {
+    display: grid;
+    width: 44px;
+    height: 44px;
+    flex: 0 0 auto;
+    margin-left: 2px;
   }
 
   .folder-nav {
     display: grid;
-    width: auto;
+    width: 100%;
     min-width: 0;
-    flex: 6 1 0;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    gap: 2px;
-  }
-
-  .folder-nav.folder-count-5 {
-    flex-grow: 5;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-  }
-
-  .folder-nav.folder-count-7 {
-    flex-grow: 7;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
-    gap: 0;
-  }
-
-  .mail-sidebar.folder-count-7 {
-    gap: 0;
-    padding-inline: 3px;
-  }
-
-  .folder-nav.folder-count-8 {
-    flex: 1 1 auto;
-    grid-template-columns: repeat(8, minmax(44px, 1fr));
-    gap: 0;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-
-  .folder-nav.folder-count-8::-webkit-scrollbar { display: none; }
-
-  .mail-sidebar.folder-count-8 {
-    gap: 0;
-    padding-inline: 2px;
-  }
-
-  .mail-sidebar.folder-count-8 .account-nav { flex: 0 0 44px; }
-
-  .folder-nav.folder-count-8 button span {
-    font-size: 8px;
+    grid-template-columns: 1fr;
+    gap: 5px;
   }
 
   .folder-nav button,
   .admin-nav button,
   .account-nav button {
-    display: flex;
+    display: grid;
     width: 100%;
-    height: 52px;
-    min-height: 52px;
-    flex-direction: column;
-    gap: 2px;
-    justify-content: center;
-    border-radius: 11px;
+    height: auto;
+    min-height: 48px;
+    grid-template-columns: 24px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    justify-items: start;
+    padding: 0 12px;
+    border-radius: 12px;
+    text-align: left;
   }
 
-  .folder-nav button span {
-    display: block;
-    font-size: 9px;
+  .folder-nav button small {
+    justify-self: end;
   }
 
   .admin-nav {
-    position: absolute;
-    z-index: 2;
-    right: 9px;
-    bottom: calc(100% + 8px);
-    left: 9px;
+    position: static;
     display: grid;
-    width: auto;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 2px;
-    margin: 0;
-    padding: 7px;
-    border: 1px solid var(--line);
-    border-radius: 16px;
-    background: color-mix(in srgb, var(--surface) 96%, transparent);
-    box-shadow: var(--shadow-lg);
-    opacity: 0;
-    pointer-events: none;
-    transform: translateY(12px) scale(0.985);
-    transform-origin: bottom center;
-    visibility: hidden;
-    transition: opacity 150ms ease-in, transform 180ms ease-in,
-      visibility 0s linear 180ms;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-  }
-
-  .admin-nav.is-open {
+    width: 100%;
+    grid-template-columns: 1fr;
+    gap: 5px;
+    margin-top: 18px;
+    padding: 18px 0 0;
+    border: 0;
+    border-top: 1px solid var(--line);
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
     opacity: 1;
     pointer-events: auto;
     transform: none;
     visibility: visible;
-    transition: opacity 180ms ease-out,
-      transform 220ms cubic-bezier(0.22, 1, 0.36, 1), visibility 0s;
-  }
-
-  .admin-nav button {
-    display: flex;
-    width: 100%;
-    height: 52px;
-    min-height: 52px;
-    flex-direction: column;
-    gap: 2px;
-    justify-content: center;
-    border-radius: 11px;
-  }
-
-  .admin-nav button span {
-    display: block;
-    font-size: 9px;
+    transition: none;
   }
 
   .account-nav {
     display: grid;
-    width: auto;
+    width: 100%;
     min-width: 0;
-    flex: 1 1 0;
-    margin: 0;
-    padding: 0;
-    border: 0;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--line);
   }
 
   .account-nav-secondary {
-    display: none;
-  }
-
-  .account-nav button {
-    display: flex;
-    width: 100%;
-    height: 52px;
-    min-height: 52px;
-    flex-direction: column;
-    gap: 2px;
-    justify-content: center;
-    border-radius: 11px;
-  }
-
-  .account-nav button span {
-    display: block;
-    font-size: 9px;
-  }
-
-  .sidebar-navigation {
     display: contents;
   }
 
+  .sidebar-navigation {
+    display: flex;
+    min-height: 0;
+    flex: 1 1 auto;
+    flex-direction: column;
+    margin-inline: -4px;
+    padding: 0 4px 10px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
   .account-nav button.is-active-mobile {
-    background: var(--accent);
-    color: var(--accent-contrast);
-  }
-
-  .admin-nav-toggle {
-    position: absolute;
-    z-index: 3;
-    bottom: calc(100% - 5px);
-    left: 50%;
-    display: grid;
-    width: 46px;
-    height: 30px;
-    padding: 0;
-    place-items: center;
-    border: 1px solid var(--line);
-    border-radius: 15px 15px 8px 8px;
-    background: color-mix(in srgb, var(--surface) 96%, transparent);
+    background: transparent;
     color: var(--text-secondary);
-    cursor: pointer;
-    box-shadow: 0 -5px 16px color-mix(in srgb, #000 8%, transparent);
-    transform: translateX(-50%);
-    transition: color 180ms ease, background 180ms ease;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-  }
-
-  .admin-nav-toggle svg {
-    transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
-  }
-
-  .admin-nav-toggle[aria-expanded="true"] svg {
-    transform: rotate(180deg);
-  }
-
-  .admin-nav-toggle.has-active-admin {
-    border-color: var(--accent);
-    background: var(--accent);
-    color: var(--accent-contrast);
   }
 
   .mail-sidebar .sidebar-account {
-    display: none;
+    display: grid;
   }
 
   .mail-sidebar .sidebar-theme {
-    display: none;
+    display: flex;
+    width: auto;
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 4px;
+    margin-inline: 0;
+    padding: 0 10px 14px;
   }
 
-  .folder-nav button small {
-    position: absolute;
-    display: block;
-    margin: -23px 0 0 20px;
-    padding: 1px 4px;
-    border-radius: 999px;
-    background: var(--danger);
-    color: #fff;
-    font-size: 8px;
+  .mail-sidebar .sidebar-theme .language-quick-toggle,
+  .mail-sidebar .sidebar-theme .sidebar-notification-toggle {
+    width: 38px;
+    height: 38px;
+  }
+
+  .mail-sidebar .sidebar-theme .theme-selector {
+    grid-auto-flow: column;
+    gap: 1px;
+    padding: 3px;
+  }
+
+  .mail-sidebar .sidebar-theme .theme-selector button {
+    width: 28px;
+    height: 32px;
   }
 
   .sidebar-account {
-    display: block;
-    flex: 0 0 auto;
-    margin: 0 0 0 4px;
-    padding: 0;
-    border: 0;
+    margin: 0;
+    padding: 10px 10px 0;
+    border-top: 1px solid var(--line);
   }
 
   .list-pane {
     width: 100%;
-    height: calc(100vh - 68px);
-    height: calc(100dvh - 68px);
+    height: 100vh;
+    height: 100dvh;
     border: 0;
   }
 
@@ -369,6 +375,14 @@
     padding-top: max(20px, env(safe-area-inset-top));
   }
 
+  .mailbox-list-header .list-header__scope-row {
+    padding-left: 54px;
+  }
+
+  .icloud-list-header > div:first-child > :first-child {
+    margin-left: 54px;
+  }
+
   .message-row__main {
     min-height: 100px;
     padding-left: 44px;
@@ -377,7 +391,7 @@
   .reader-pane {
     position: fixed;
     z-index: 40;
-    inset: 0 0 68px;
+    inset: 0;
     display: none;
     background: var(--surface);
   }
@@ -431,19 +445,19 @@
   .reply-composer {
     position: fixed;
     right: 10px;
-    bottom: 78px;
+    bottom: max(10px, env(safe-area-inset-bottom));
     width: calc(100% - 20px);
   }
 
   .toast {
     right: 50%;
-    bottom: 82px;
+    bottom: max(14px, env(safe-area-inset-bottom));
     transform: translateX(50%);
     white-space: nowrap;
   }
 
   .toast--update {
-    bottom: 136px;
+    bottom: max(68px, calc(env(safe-area-inset-bottom) + 54px));
   }
 
   @keyframes toast-in {

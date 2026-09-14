@@ -124,7 +124,7 @@ test('slow remote images do not block readable email content', async ({ page }) 
     await scrollTopButton.click()
     await expect.poll(() => reader.evaluate((element) => element.scrollTop)).toBe(0)
     await expect(toolbarTypewriter).toHaveText('邮件详情')
-    for (const viewport of [{ width: 375, height: 900 }, { width: 667, height: 375 }]) {
+    for (const viewport of [{ width: 375, height: 600 }, { width: 667, height: 375 }]) {
       await page.setViewportSize(viewport)
       await reader.evaluate((element) => { element.scrollTop = element.scrollHeight })
       await expect(toolbarSubject).toBeVisible()

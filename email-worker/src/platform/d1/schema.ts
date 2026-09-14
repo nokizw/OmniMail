@@ -22,7 +22,7 @@ function appliedMigration(db: D1Database, name: string) {
 function migrationError(cause?: unknown, migration = REQUIRED_MIGRATION): Error {
   const detail = cause instanceof Error && cause.message ? ` ${cause.message}` : ''
   return new Error(
-    `D1 数据库迁移未完成，请在部署前运行 npm run db:migrate。`
+    `D1 数据库迁移未完成，请运行 npm run deploy 完成数据库初始化和部署（单独运行 npx wrangler deploy 不会执行迁移）。`
       + ` 缺少迁移：${migration}。${detail}`,
   )
 }
@@ -105,8 +105,9 @@ function recordMigration(db: D1Database, migration: string): D1PreparedStatement
 async function ensureRequiredMigrations(db: D1Database): Promise<void> {
   try {
     if (await appliedMigration(db, REQUIRED_MIGRATION)) return
-  } catch {
-    // A fresh database has no migration table yet; continue into recovery.
+  } catch (error) {
+    // 只有明确缺少迁移表才进入恢复；额度、权限和网络错误不能误当成需要建表。
+    if (!(error instanceof Error) || !/no such table:\s*d1_migrations\b/i.test(error.message)) throw error
   }
   await bootstrapLegacyMigrations(db)
   for (const migration of RECOVERABLE_MIGRATIONS) {

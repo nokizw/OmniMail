@@ -1,3 +1,4 @@
+import { isD1QuotaError } from '../d1/quota-guard'
 import { expireTemporaryAccounts } from '../../features/auth/account/account-api'
 import { purgeUserDraft } from '../../features/drafts/draft-api'
 import { permanentlyDeleteMessage, purgePendingObjectDeletions } from '../../features/messages/message-storage'
@@ -201,41 +202,49 @@ export async function cleanup(env: Env): Promise<void> {
   try {
     await enqueueMissingMessageSearch(env)
   } catch (error) {
+    if (isD1QuotaError(error)) throw error
     console.error('Unable to enqueue message search backfill', error)
   }
   try {
     await enqueueDueGmailSyncs(env, now)
   } catch (error) {
+    if (isD1QuotaError(error)) throw error
     console.error('Unable to enqueue Gmail synchronization', error)
   }
   try {
     await enqueueDueMicrosoftSyncs(env, now)
   } catch (error) {
+    if (isD1QuotaError(error)) throw error
     console.error('Unable to enqueue Microsoft synchronization', error)
   }
   try {
     await enqueueDueQqMailSyncs(env, now)
   } catch (error) {
+    if (isD1QuotaError(error)) throw error
     console.error('Unable to enqueue QQ Mail synchronization', error)
   }
   try {
     await enqueueDueNaverMailSyncs(env, now)
   } catch (error) {
+    if (isD1QuotaError(error)) throw error
     console.error('Unable to enqueue NAVER Mail synchronization', error)
   }
   try {
     await enqueueDueYandexMailSyncs(env, now)
   } catch (error) {
+    if (isD1QuotaError(error)) throw error
     console.error('Unable to enqueue Yandex Mail synchronization', error)
   }
   try {
     await enqueueDueICloudSyncs(env, now)
   } catch (error) {
+    if (isD1QuotaError(error)) throw error
     console.error('Unable to enqueue iCloud synchronization', error)
   }
   try {
     await enqueueDueLinuxDoMailSyncs(env, now)
   } catch (error) {
+    if (isD1QuotaError(error)) throw error
     console.error('Unable to enqueue Linux DO Mail synchronization', error)
   }
   await purgePendingObjectDeletions(env)

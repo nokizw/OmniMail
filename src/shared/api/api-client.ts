@@ -1,4 +1,5 @@
 import { t } from '../i18n'
+import { recordServiceBackoff, serviceBackoff, serviceBackoffMessage } from './service-backoff'
 import type {
   AdminMessageAction,
   AdminMessageDetail,
@@ -70,6 +71,8 @@ export const AUTH_REQUIRED_EVENT = 'omnimail:auth-required'
 type RequestOptions = RequestInit & { timeoutMs?: number }
 
 export async function request<T>(path: string, init: RequestOptions = {}): Promise<T> {
+  const paused = serviceBackoff()
+  if (paused) throw new ApiError(serviceBackoffMessage(paused), 503)
   const { timeoutMs = REQUEST_TIMEOUT_MS, ...requestInit } = init
   const headers = new Headers(requestInit.headers)
   if (requestInit.body && !(requestInit.body instanceof FormData) && !headers.has('Content-Type')) {
@@ -92,6 +95,8 @@ export async function request<T>(path: string, init: RequestOptions = {}): Promi
   }
   const data = await response.json().catch(() => ({})) as { error?: string }
   if (!response.ok) {
+    const backoff = response.status === 503 ? recordServiceBackoff(data) : undefined
+    if (backoff) throw new ApiError(serviceBackoffMessage(backoff), response.status)
     if (response.status === 401 && typeof window !== 'undefined') {
       window.dispatchEvent(new Event(AUTH_REQUIRED_EVENT))
     }

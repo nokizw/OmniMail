@@ -1,4 +1,4 @@
-import { attachmentDisposition, inlineDisposition, safeJsonArray } from '../../shared/http/api-helpers'
+import { attachmentDisposition, inlineDisposition, safeJsonArray, validEmail } from '../../shared/http/api-helpers'
 import { writeAudit } from '../../shared/audit/audit'
 import { messageSummary } from './message-list-api'
 import { listMessageThread } from './message-thread'
@@ -49,6 +49,7 @@ export async function getMessageDetail(
       ...summary,
       messageId: message.message_id,
       inReplyTo: message.in_reply_to,
+      replyTo: safeJsonArray(message.reply_to_json).find(validEmail) || message.sender_address,
       references: message.references_header,
       cc: safeJsonArray(message.cc_json),
       text: body.text,
@@ -93,19 +94,23 @@ export async function updateMessage(
     : 0
   const trashedAt = movingToTrash ? message.trashed_at ?? now : null
   const purgeAfter = movingToTrash ? trashedAt! + trashDays * 24 * 60 * 60 : null
+  const isRead = typeof body.isRead === 'boolean' ? Number(body.isRead) : message.is_read
+  const isStarred = typeof body.isStarred === 'boolean' ? Number(body.isStarred) : message.is_starred
 
   await env.DB.prepare(
     `UPDATE messages
         SET is_read = ?, is_starred = ?, folder = ?,
             trashed_at = ?, purge_after = ?, updated_at = unixepoch()
-      WHERE id = ?`,
+      WHERE id = ? AND (is_read IS NOT ? OR is_starred IS NOT ? OR folder IS NOT ?
+        OR trashed_at IS NOT ? OR purge_after IS NOT ?)`,
   ).bind(
-    typeof body.isRead === 'boolean' ? Number(body.isRead) : message.is_read,
-    typeof body.isStarred === 'boolean' ? Number(body.isStarred) : message.is_starred,
+    isRead,
+    isStarred,
     allowedFolder,
     trashedAt,
     purgeAfter,
     message.id,
+    isRead, isStarred, allowedFolder, trashedAt, purgeAfter,
   ).run()
   return Response.json({ ok: true })
 }

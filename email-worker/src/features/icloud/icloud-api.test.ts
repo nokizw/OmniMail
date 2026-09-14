@@ -68,7 +68,7 @@ describe('iCloud account API validation', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
-  it('requires the dedicated credential encryption key', async () => {
+  it('requires a global or dedicated credential encryption key', async () => {
     const response = await createICloudAccount(
       {} as Env,
       user,
@@ -78,7 +78,7 @@ describe('iCloud account API validation', () => {
 
     expect(response.status).toBe(503)
     await expect(response.json()).resolves.toEqual({
-      error: 'iCloud 功能尚未配置 ICLOUD_CREDENTIALS_KEY。',
+      error: 'iCloud 功能尚未配置 MAIL_CREDENTIALS_KEY 或 ICLOUD_CREDENTIALS_KEY。',
     })
   })
 

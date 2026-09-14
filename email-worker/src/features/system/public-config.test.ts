@@ -20,6 +20,17 @@ function environment(settings: Record<string, string>, credentials = false): Env
 }
 
 describe('public registration configuration', () => {
+  it('单个全局密钥支持全部邮箱，同时保留显式关闭开关且不泄露主密钥', async () => {
+    const env = environment({})
+    env.MAIL_CREDENTIALS_KEY = 'global-do-not-return-this-secret-value'
+    env.GMAIL_IMAP_ENABLED = 'false'
+    env.NAVER_MAIL_IMAP_ENABLED = 'true'
+    env.YANDEX_MAIL_IMAP_ENABLED = 'true'
+    const config = await publicConfig(env)
+    expect(config).toMatchObject({ iCloudEnabled: true, gmailEnabled: false,
+      microsoftEnabled: true, qqMailEnabled: true, naverMailEnabled: true, yandexMailEnabled: true })
+    expect(JSON.stringify(config)).not.toContain('do-not-return')
+  })
   it('makes Linux DO registration available without Turnstile when Connect is configured', async () => {
     const config = await publicConfig(environment({
       external_registration_enabled: '1',

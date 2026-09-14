@@ -8,6 +8,7 @@ import {
   OutboundProviderAcceptedError,
 } from '../../features/outbound/outbound-message'
 import { ensureSchema } from '../../platform/d1/schema'
+import { isD1QuotaError } from '../../platform/d1/quota-guard'
 import { consumeGmailSyncJob } from '../../features/gmail/gmail-sync'
 import { consumeMicrosoftSyncJob } from '../../features/microsoft/microsoft-sync'
 import { consumeQqMailSyncJob } from '../../features/qq-mail/qq-mail-sync'
@@ -413,7 +414,8 @@ async function consumeSearchIndexJob(
   try {
     await indexStoredMessage(env, message.body.messageId)
     message.ack()
-  } catch {
+  } catch (error) {
+    if (isD1QuotaError(error)) throw error
     message.retry({ delaySeconds: 30 })
   }
 }

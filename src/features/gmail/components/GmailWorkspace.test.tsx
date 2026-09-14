@@ -9,7 +9,7 @@ describe('Gmail workspace accessibility boundaries', () => {
     const html = renderToStaticMarkup(
       <GmailWorkspace enabled={false} remoteImagesEnabled={false} />,
     )
-    expect(html).toContain('GMAIL_CREDENTIALS_KEY')
+    expect(html).toContain('MAIL_CREDENTIALS_KEY')
     expect(html).toContain('Gmail 功能尚未启用')
     expect(html).toContain('gmail-mail-view')
     expect(html).toContain('gmail-list-pane')

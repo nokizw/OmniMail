@@ -1,5 +1,7 @@
 # Microsoft 邮箱设置指南
 
+> 新部署推荐使用统一 `MAIL_CREDENTIALS_KEY`；旧 `MICROSOFT_CREDENTIALS_KEY` 继续兼容。升级时先保留旧值，按[迁移指南](MAIL_CREDENTIALS.md)由主管理员主动迁移。
+
 OmniMail 通过固定的 `outlook.office365.com:993` TLS 连接，以受控 IMAP 方式访问用户自己有权
 使用的 Microsoft 邮箱。只允许读取与精确标记已读；只支持 OAuth2，不再接受仅邮箱密码凭据，
 也不会使用 IMAP LOGIN。
@@ -9,7 +11,7 @@ Microsoft 365 委托式账号。不支持世纪互联、中国区、GCC High 或
 
 ## 1. 部署配置
 
-1. 在 Worker 的 **Variables & Secrets** 中新增 Secret `MICROSOFT_CREDENTIALS_KEY`。
+1. 在 Worker 的 **Variables & Secrets** 中新增 Secret `MAIL_CREDENTIALS_KEY`。
    值必须至少包含 32 个随机 UTF-8 字节，并在迁移或恢复部署时保持不变。
 2. 可选新增 Text 变量 `MICROSOFT_MAIL_ENABLED=true`。设为 `false` 会隐藏入口并停止定时入队，
    但不会删除已保存的账号、密文或索引。
@@ -21,7 +23,7 @@ Microsoft 365 委托式账号。不支持世纪互联、中国区、GCC High 或
 本地开发可复制示例变量：
 
 ```text
-MICROSOFT_CREDENTIALS_KEY=replace-with-at-least-32-random-bytes
+MAIL_CREDENTIALS_KEY=replace-with-at-least-32-random-bytes
 MICROSOFT_MAIL_ENABLED=true
 ```
 
@@ -137,6 +139,6 @@ OmniMail 不使用 ROPC、密码 LOGIN、网页登录自动化、代理或其他
 - `imap_scope_missing` 表示 token 不含 Outlook IMAP 委托 scope。
 - `imap_access_rejected` 或 `permission_error` 可能表示租户关闭 IMAP、缺少同意或条件访问阻止。
 - `credential_decryption_failed` 表示部署密钥与保存凭据时不一致；恢复原
-  `MICROSOFT_CREDENTIALS_KEY`，或断开后重新连接账号。
+  `MAIL_CREDENTIALS_KEY`（旧密文对应 `MICROSOFT_CREDENTIALS_KEY`），或断开后重新连接账号。
 
 完整端点与响应说明见 [Microsoft API 参考](api/microsoft.md)。

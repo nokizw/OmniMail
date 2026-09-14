@@ -1,5 +1,6 @@
 import { safeJsonArray } from '../http/api-helpers'
 import type { Env, StoredBody } from '../../app/types'
+import { enqueueSearchBackfill } from './search-backfill'
 
 const MAX_SEARCH_CONTENT_CHARS = 200_000
 
@@ -36,7 +37,8 @@ export function messageSearchStatement(
     `INSERT INTO message_search (message_id, content, indexed_at)
      VALUES (?, ?, unixepoch())
      ON CONFLICT(message_id) DO UPDATE SET
-       content = excluded.content, indexed_at = excluded.indexed_at`,
+       content = excluded.content, indexed_at = excluded.indexed_at
+     WHERE message_search.content IS NOT excluded.content`,
   ).bind(messageId, searchContent(input))
 }
 
@@ -68,15 +70,5 @@ export async function indexStoredMessage(env: Env, messageId: string): Promise<v
 }
 
 export async function enqueueMissingMessageSearch(env: Env): Promise<void> {
-  const { results } = await env.DB.prepare(
-    `SELECT m.id
-       FROM messages m
-       LEFT JOIN message_search s ON s.message_id = m.id
-      WHERE s.message_id IS NULL AND m.body_key IS NOT NULL
-      ORDER BY m.updated_at DESC
-      LIMIT 20`,
-  ).all<{ id: string }>()
-  for (const message of results) {
-    await env.MAIL_QUEUE.send({ kind: 'index', messageId: message.id })
-  }
+  await enqueueSearchBackfill(env)
 }

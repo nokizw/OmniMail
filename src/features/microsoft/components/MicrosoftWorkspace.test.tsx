@@ -9,7 +9,7 @@ describe('Microsoft workspace safety and accessibility boundaries', () => {
     const html = renderToStaticMarkup(
       <MicrosoftWorkspace enabled={false} remoteImagesEnabled={false} />,
     )
-    expect(html).toContain('MICROSOFT_CREDENTIALS_KEY')
+    expect(html).toContain('MAIL_CREDENTIALS_KEY')
     expect(html).toContain('MICROSOFT_MAIL_ENABLED')
     expect(html).toContain('microsoft-list-pane')
     expect(html).toContain('选择一封 Microsoft 邮件')

@@ -6,6 +6,12 @@ describe('mail notification index API', () => {
   it('returns only requested sources without exposing message bodies', async () => {
     const prepared: string[] = []
     const db = {
+      batch: vi.fn(async () => [
+        { results: [{ source: 'icloud', account_id: 'icloud-1', message_id: '42', sender_name: 'Apple',
+          sender_address: 'sender@example.net', subject: 'Verification code', message_date: 1_700_000_000, is_read: 0 }] },
+        { results: [{ unread_total: 1 }] }, { results: [{ source: 'icloud' }] },
+        { results: [{ source: 'icloud', version: 1 }] },
+      ]),
       prepare: vi.fn((sql: string) => {
         prepared.push(sql)
         return {
@@ -30,8 +36,8 @@ describe('mail notification index API', () => {
     const body = await response.json() as Record<string, unknown>
 
     expect(response.headers.get('Cache-Control')).toBe('private, no-store')
-    expect(prepared[0]).toContain('icloud_imap_messages')
-    expect(prepared[0]).not.toContain('linux_do_mail_messages')
+    expect(prepared.some((sql) => sql.includes('icloud_imap_messages'))).toBe(true)
+    expect(prepared.every((sql) => !sql.includes('linux_do_mail_messages'))).toBe(true)
     expect(body).toEqual({
       messages: [{
         source: 'icloud', accountId: 'icloud-1', messageId: '42',

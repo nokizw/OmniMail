@@ -1,4 +1,5 @@
 export const enErrors: Record<string, string> = {
+  '数据库今日读写额度已用完。预计 {time} 恢复；自动请求已退避，请稍后重试或联系管理员。': 'The database daily read/write quota is exhausted. It is expected to reset at {time}. Automatic requests are backed off; retry later or contact the administrator.',
   '备份、保留、草稿或默认配额设置无效。':
     'Backup, retention, draft, or default quota settings are invalid.',
   '没有需要保存的账户更改。': 'There are no account changes to save.',

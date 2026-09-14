@@ -406,13 +406,11 @@ test('connects Gmail, marks opened mail read, and preserves controlled IMAP beha
   await page.setViewportSize({ width: 375, height: 812 })
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth))
     .toBe(true)
-  const mobileWorkspaceButtons = page.locator('.folder-nav > button')
-  await expect(mobileWorkspaceButtons).toHaveCount(8)
-  expect(Math.min(...await mobileWorkspaceButtons.evaluateAll((buttons) => (
-    buttons.map((button) => button.getBoundingClientRect().width)
-  )))).toBeGreaterThanOrEqual(44)
-  expect(await page.locator('.folder-nav').evaluate((element) => element.scrollWidth > element.clientWidth))
-    .toBe(true)
+  await expect(page.locator('.mail-sidebar')).toHaveCSS('visibility', 'hidden')
+  await expect(page.locator('.mobile-sidebar-toggle')).toHaveCSS('display', 'none')
+  expect(await page.locator('.gmail-workspace').evaluate((element) => (
+    element.getBoundingClientRect().height
+  ))).toBe(812)
   expect(await emailDocument.locator('html').evaluate((element) => (
     element.scrollWidth <= element.clientWidth
   ))).toBe(true)

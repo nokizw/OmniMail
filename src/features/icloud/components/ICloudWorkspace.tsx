@@ -387,7 +387,7 @@ export function ICloudWorkspace({ userId, enabled, remoteImagesEnabled }: {
             aria-label={t('复制')} data-tooltip={t('复制')}><Copy size={14} /></button></div>
         </div>}
 
-        {!enabled ? <Empty icon={<KeyRound size={24} />} title={t('iCloud 功能尚未启用')} description={t('在 Worker Variables & Secrets 中配置至少 32 字节的 ICLOUD_CREDENTIALS_KEY，然后重新部署。')} />
+        {!enabled ? <Empty icon={<KeyRound size={24} />} title={t('iCloud 功能尚未启用')} description={t('在 Worker Variables & Secrets 中配置至少 32 字节的 MAIL_CREDENTIALS_KEY，然后重新部署。')} />
           : loading ? <div className="icloud-loading"><Spinner size={22} />{t('正在读取 iCloud 账号…')}</div>
           : !accounts.length ? <Empty icon={<Cloud size={24} />} title={t('还没有 iCloud 账号')} description={t('使用应用专用密码即可收取主邮箱；如需管理隐藏邮箱，再添加 Cookie。')} action={<button className="button button--primary" type="button" onClick={() => setAddOpen(true)}><Plus size={16} />{t('添加第一个账号')}</button>} />
           : selectedAlias && !selected?.hasAppPassword ? <Empty icon={<KeyRound size={24} />} title={t('需要应用专用密码')} description={t('配置后才能准确筛选这个隐藏邮箱收到的邮件。')} action={<button className="button button--secondary button--small" type="button" onClick={() => selected && setCredentials(selected)}>{t('配置应用密码')}</button>} />

@@ -71,7 +71,7 @@ describe('message sync version', () => {
     expect(canViewUnassignedMail({ ...user, role: 'user' })).toBe(false)
   })
 
-  it('batches the message page and folder counts in one D1 call', async () => {
+  it('reads the message page, counts and response version in the same D1 batch', async () => {
     const statements: Array<{ sql: string; values: unknown[] }> = []
     const batch = vi.fn(async () => [
       { results: [{
@@ -84,6 +84,7 @@ describe('message sync version', () => {
         purge_after: null, created_at: 10, sort_time: 10,
       }] },
       { results: [{ unread: 1, starred: 0, sent: 0, trash: 0, drafts: 2 }] },
+      { results: [{ version: 3 }] },
     ])
     const db = {
       prepare: (sql: string) => {
@@ -113,7 +114,7 @@ describe('message sync version', () => {
     }
 
     expect(batch).toHaveBeenCalledOnce()
-    expect(batch.mock.calls[0][0]).toHaveLength(2)
+    expect(batch.mock.calls[0][0]).toHaveLength(3)
     expect(statements.some((statement) => statement.sql.includes('ORDER BY m.sort_at'))).toBe(true)
     expect(statements.filter((statement) => statement.sql.includes('FROM messages'))
       .every((statement) => statement.sql.includes('mb.address = ?'))).toBe(true)

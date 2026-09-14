@@ -4,13 +4,13 @@ import {
   Bell,
   BellOff,
   BookOpen,
-  ChevronUp,
   FilePenLine,
   Inbox,
   Cloud,
   Globe2,
   Link2,
   Mail,
+  Menu,
   LogOut,
   ScrollText,
   SearchCheck,
@@ -20,6 +20,7 @@ import {
   Trash2,
   UserCog,
   Users,
+  X,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { type Folder, type MailCounts, type User } from '../../../shared/api'
@@ -103,16 +104,11 @@ export function MailboxSidebar({
   onLogout: () => Promise<void>
 }) {
   const showAdmin = isAdminRole(user.role)
-  const folderEntryCount = folders.length
-    + Number(Boolean(iCloudWorkspaceEnabled))
-    + Number(Boolean(linuxDoMailWorkspaceEnabled))
-    + Number(Boolean(gmailWorkspaceEnabled))
-    + Number(Boolean(microsoftWorkspaceEnabled))
-    + Number(Boolean(qqMailWorkspaceEnabled))
-    + Number(Boolean(naverMailWorkspaceEnabled))
-    + Number(Boolean(yandexMailWorkspaceEnabled))
   const sidebarRef = useRef<HTMLElement>(null)
-  const [adminMenuOpen, setAdminMenuOpen] = useState(false)
+  const mobileToggleRef = useRef<HTMLButtonElement>(null)
+  const mobileCloseRef = useRef<HTMLButtonElement>(null)
+  const restoreMobileToggleFocus = useRef(false)
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const [scrollbarActive, setScrollbarActive] = useState(false)
   const scrollbarTimer = useRef<number | null>(null)
 
@@ -128,6 +124,56 @@ export function MailboxSidebar({
     if (scrollbarTimer.current !== null) window.clearTimeout(scrollbarTimer.current)
   }, [])
 
+  useEffect(() => {
+    if (!mobileSidebarOpen) return
+    mobileCloseRef.current?.focus()
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        restoreMobileToggleFocus.current = true
+        setMobileSidebarOpen(false)
+        return
+      }
+      if (event.key !== 'Tab') return
+      const focusable = [...(sidebarRef.current?.querySelectorAll<HTMLElement>(
+        'a[href], button:not(:disabled)',
+      ) || [])]
+      if (!focusable.length) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [mobileSidebarOpen])
+
+  useEffect(() => {
+    if (mobileSidebarOpen || !restoreMobileToggleFocus.current) return
+    restoreMobileToggleFocus.current = false
+    mobileToggleRef.current?.focus()
+  }, [mobileSidebarOpen])
+
+  useEffect(() => {
+    const mobile = window.matchMedia('(max-width: 760px)')
+    function closeAfterResize(event: MediaQueryListEvent) {
+      if (!event.matches) setMobileSidebarOpen(false)
+    }
+    mobile.addEventListener('change', closeAfterResize)
+    return () => mobile.removeEventListener('change', closeAfterResize)
+  }, [])
+
+  function closeMobileSidebar(restoreFocus = false) {
+    restoreMobileToggleFocus.current = restoreFocus
+    setMobileSidebarOpen(false)
+  }
+
   function showScrollbarWhileScrolling() {
     setScrollbarActive(true)
     if (scrollbarTimer.current !== null) window.clearTimeout(scrollbarTimer.current)
@@ -137,8 +183,33 @@ export function MailboxSidebar({
     }, 700)
   }
 
-  return (
-    <aside className={`mail-sidebar folder-count-${folderEntryCount} ${showAdmin ? 'is-admin' : ''}`} ref={sidebarRef}>
+  return <>
+    <button
+      ref={mobileToggleRef}
+      className="mobile-sidebar-toggle"
+      type="button"
+      aria-controls="mail-navigation"
+      aria-expanded={mobileSidebarOpen}
+      aria-label={t('打开导航菜单')}
+      onClick={() => setMobileSidebarOpen(true)}
+    >
+      <Menu size={22} aria-hidden="true" />
+    </button>
+    <button
+      className={`mobile-sidebar-backdrop${mobileSidebarOpen ? ' is-open' : ''}`}
+      type="button"
+      tabIndex={-1}
+      aria-hidden="true"
+      onClick={() => closeMobileSidebar(true)}
+    />
+    <aside
+      id="mail-navigation"
+      className={`mail-sidebar ${showAdmin ? 'is-admin ' : ''}${mobileSidebarOpen ? 'is-mobile-open' : ''}`.trim()}
+      ref={sidebarRef}
+      role={mobileSidebarOpen ? 'dialog' : undefined}
+      aria-modal={mobileSidebarOpen ? true : undefined}
+      aria-label={mobileSidebarOpen ? t('导航菜单') : undefined}
+    >
       <div className="sidebar-brand">
         <Brand />
         <nav className="sidebar-brand-links" aria-label={t('OmniMail 项目链接')}>
@@ -155,6 +226,15 @@ export function MailboxSidebar({
             <Globe2 size={16} aria-hidden="true" />
           </a>
         </nav>
+        <button
+          ref={mobileCloseRef}
+          className="icon-button mobile-sidebar-close"
+          type="button"
+          aria-label={t('关闭导航菜单')}
+          onClick={() => closeMobileSidebar(true)}
+        >
+          <X size={18} aria-hidden="true" />
+        </button>
       </div>
       <div className="sidebar-theme">
         <ThemeToggle />
@@ -168,7 +248,7 @@ export function MailboxSidebar({
       </div>
       <div className={`sidebar-navigation${scrollbarActive ? ' is-scrollbar-active' : ''}`}
         onScroll={showScrollbarWhileScrolling}>
-      <nav className={`folder-nav folder-count-${folderEntryCount}`} aria-label={t('邮箱文件夹')}>
+      <nav className="folder-nav" aria-label={t('邮箱文件夹')}>
         {folders.map((item) => {
           const Icon = item.icon
           const count = counts[item.count]
@@ -178,7 +258,7 @@ export function MailboxSidebar({
               type="button"
               key={item.id}
               onClick={() => {
-                setAdminMenuOpen(false)
+                closeMobileSidebar()
                 onFolderChange(item.id)
               }}
             >
@@ -197,7 +277,7 @@ export function MailboxSidebar({
           className={adminView === 'icloud' ? 'is-active' : ''}
           type="button"
           onClick={() => {
-            setAdminMenuOpen(false)
+            closeMobileSidebar()
             onAdminViewChange('icloud')
           }}
         >
@@ -208,7 +288,7 @@ export function MailboxSidebar({
           className={adminView === 'linuxdo-mail' ? 'is-active' : ''}
           type="button"
           onClick={() => {
-            setAdminMenuOpen(false)
+            closeMobileSidebar()
             onAdminViewChange('linuxdo-mail')
           }}
         >
@@ -219,7 +299,7 @@ export function MailboxSidebar({
           className={adminView === 'gmail' ? 'is-active' : ''}
           type="button"
           onClick={() => {
-            setAdminMenuOpen(false)
+            closeMobileSidebar()
             onAdminViewChange('gmail')
           }}
         >
@@ -230,7 +310,7 @@ export function MailboxSidebar({
           className={adminView === 'microsoft' ? 'is-active' : ''}
           type="button"
           onClick={() => {
-            setAdminMenuOpen(false)
+            closeMobileSidebar()
             onAdminViewChange('microsoft')
           }}
         >
@@ -241,7 +321,7 @@ export function MailboxSidebar({
           className={adminView === 'qq-mail' ? 'is-active' : ''}
           type="button"
           onClick={() => {
-            setAdminMenuOpen(false)
+            closeMobileSidebar()
             onAdminViewChange('qq-mail')
           }}
         >
@@ -252,7 +332,7 @@ export function MailboxSidebar({
           className={adminView === 'naver-mail' ? 'is-active' : ''}
           type="button"
           onClick={() => {
-            setAdminMenuOpen(false)
+            closeMobileSidebar()
             onAdminViewChange('naver-mail')
           }}
         >
@@ -263,7 +343,7 @@ export function MailboxSidebar({
           className={adminView === 'yandex-mail' ? 'is-active' : ''}
           type="button"
           onClick={() => {
-            setAdminMenuOpen(false)
+            closeMobileSidebar()
             onAdminViewChange('yandex-mail')
           }}
         >
@@ -273,41 +353,25 @@ export function MailboxSidebar({
       </nav>
 
       {showAdmin && (
-        <>
-          <button
-            className={`admin-nav-toggle${adminView && adminView !== 'account' ? ' has-active-admin' : ''}`}
-            type="button"
-            aria-controls="mobile-admin-navigation"
-            aria-expanded={adminMenuOpen}
-            aria-label={t(adminMenuOpen ? '收起管理员功能' : '展开管理员功能')}
-            onClick={() => setAdminMenuOpen((open) => !open)}
-          >
-            <ChevronUp size={17} aria-hidden="true" />
-          </button>
-          <nav
-            id="mobile-admin-navigation"
-            className={`admin-nav${adminMenuOpen ? ' is-open' : ''}`}
-            aria-label={t('管理员功能')}
-          >
-            {adminItems.filter((item) => !item.superAdminOnly || user.role === 'super_admin').map((item) => {
-              const Icon = item.icon
-              return (
-                <button
-                  className={adminView === item.id ? 'is-active' : ''}
-                  type="button"
-                  key={item.id}
-                  onClick={() => {
-                    setAdminMenuOpen(false)
-                    onAdminViewChange(item.id)
-                  }}
-                >
-                  <Icon size={18} />
-                  <span>{t(item.label)}</span>
-                </button>
-              )
-            })}
-          </nav>
-        </>
+        <nav className="admin-nav" aria-label={t('管理员功能')}>
+          {adminItems.filter((item) => !item.superAdminOnly || user.role === 'super_admin').map((item) => {
+            const Icon = item.icon
+            return (
+              <button
+                className={adminView === item.id ? 'is-active' : ''}
+                type="button"
+                key={item.id}
+                onClick={() => {
+                  closeMobileSidebar()
+                  onAdminViewChange(item.id)
+                }}
+              >
+                <Icon size={18} />
+                <span>{t(item.label)}</span>
+              </button>
+            )
+          })}
+        </nav>
       )}
 
       <nav className="account-nav" aria-label={t('个人账户')}>
@@ -316,7 +380,7 @@ export function MailboxSidebar({
             className={adminView === 'api' ? 'is-active' : ''}
             type="button"
             onClick={() => {
-              setAdminMenuOpen(false)
+              closeMobileSidebar()
               onAdminViewChange('api')
             }}
           >
@@ -332,7 +396,7 @@ export function MailboxSidebar({
               : ''}
           type="button"
           onClick={() => {
-            setAdminMenuOpen(false)
+            closeMobileSidebar()
             onAdminViewChange('account')
           }}
         >
@@ -360,5 +424,5 @@ export function MailboxSidebar({
         </button>
       </div>
     </aside>
-  )
+  </>
 }

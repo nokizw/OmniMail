@@ -93,6 +93,7 @@ test('lists recent drafts and resumes editing one', async ({ page }) => {
       bottom: Math.round(box.bottom),
     }
   })
-  expect(mobile).toEqual({ left: 0, top: 0, right: 390, bottom: 776 })
-  await expect(page.locator('.admin-nav')).toHaveCSS('opacity', '0')
+  expect(mobile).toEqual({ left: 0, top: 0, right: 390, bottom: 844 })
+  await expect(page.locator('.mail-sidebar')).toHaveCSS('visibility', 'hidden')
+  await expect(page.locator('.mobile-sidebar-toggle')).toHaveCSS('display', 'none')
 })

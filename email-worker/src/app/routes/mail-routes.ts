@@ -1,4 +1,5 @@
 import type { Hono } from 'hono'
+import { listDesktopAccounts, exportDesktopCredentials } from '../../features/desktop/desktop-api'
 import type { AppContext } from '../context'
 import { gmailRoutes } from '../../features/gmail/gmail-routes'
 import { iCloudRoutes } from '../../features/icloud/icloud-routes'
@@ -19,6 +20,8 @@ import { mailFeatureRoutes } from './mail-feature-routes'
 import { listMailNotifications } from '../../features/notifications/mail-notification-api'
 
 export function registerMailRoutes(app: Hono<AppContext>): void {
+app.get('/api/desktop/accounts', (c) => listDesktopAccounts(c.env, c.get('user'), c.get('authKind')))
+app.post('/api/desktop/credentials', (c) => exportDesktopCredentials(c.env, c.get('user'), c.req.raw, c.get('authKind')))
 app.get('/api/mailboxes', (context) => (
   listMailboxes(context.env, context.get('user'))
 ))

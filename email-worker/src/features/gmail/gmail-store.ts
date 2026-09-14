@@ -98,7 +98,7 @@ export class GmailAccountStore {
     private readonly userId: string,
   ) {
     if (!gmailCredentialsReady(env)) {
-      throw new GmailStoreError(503, 'Gmail 功能尚未配置 GMAIL_CREDENTIALS_KEY。')
+      throw new GmailStoreError(503, 'Gmail 功能尚未配置 MAIL_CREDENTIALS_KEY 或 GMAIL_CREDENTIALS_KEY。')
     }
   }
 

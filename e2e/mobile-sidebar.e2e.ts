@@ -7,6 +7,7 @@ test('navigation stays usable on mobile and short desktop viewports', async ({ p
   await page.addInitScript(() => {
     localStorage.setItem('omnimail.deployment-guide.v1', 'seen')
     localStorage.setItem('omnimail-locale', 'zh-CN')
+    localStorage.setItem('omnimail-theme', 'dark')
   })
   await page.route('**://*/api/**', (route) => {
     const path = new URL(route.request().url()).pathname
@@ -18,6 +19,9 @@ test('navigation stays usable on mobile and short desktop viewports', async ({ p
         registrationDomainPolicy: { mode: 'blocklist', domains: [] },
         registrationProtectionReady: false, turnstileSiteKey: '',
         iCloudWorkspaceEnabled: true, linuxDoMailWorkspaceEnabled: true,
+        gmailWorkspaceEnabled: true, microsoftWorkspaceEnabled: true,
+        qqMailWorkspaceEnabled: true, naverMailWorkspaceEnabled: true,
+        yandexMailWorkspaceEnabled: true,
         mailRefreshInterval: 30, remoteImagesEnabled: false,
         unassignedMailEnabled: false, superAdminEmail: user.email,
         setupRequirements: {
@@ -52,53 +56,57 @@ test('navigation stays usable on mobile and short desktop viewports', async ({ p
   await page.goto('/')
   const sidebar = page.locator('.mail-sidebar')
   const navigation = sidebar.locator('.sidebar-navigation')
-  const primaryMetrics = () => sidebar.evaluate((element) => {
-    const buttons = [...element.querySelectorAll<HTMLElement>('.folder-nav > button, .account-nav > button')]
-    const rects = buttons.map((button) => button.getBoundingClientRect())
-    return {
-      count: buttons.length,
-      widthDelta: Math.max(...rects.map((rect) => rect.width)) - Math.min(...rects.map((rect) => rect.width)),
-      minWidth: Math.min(...rects.map((rect) => rect.width)),
-      topDelta: Math.max(...rects.map((rect) => rect.top)) - Math.min(...rects.map((rect) => rect.top)),
-      pageOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
-    }
-  })
+  const mobileToggle = page.locator('.mobile-sidebar-toggle')
+  await expect(mobileToggle).toHaveAttribute('aria-label', '打开导航菜单')
 
   for (const width of [360, 393, 430]) {
     await page.setViewportSize({ width, height: 800 })
-    const metrics = await primaryMetrics()
-    expect(metrics.count).toBe(8)
-    expect(metrics.widthDelta).toBeLessThanOrEqual(3)
-    expect(metrics.minWidth).toBeGreaterThanOrEqual(44)
-    expect(metrics.topDelta).toBeLessThanOrEqual(1)
+    await expect(mobileToggle).toBeVisible()
+    await expect(mobileToggle).toHaveAttribute('aria-expanded', 'false')
+    const metrics = await mobileToggle.evaluate((element) => ({
+      rect: element.getBoundingClientRect().toJSON(),
+      pageOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    }))
+    expect(metrics.rect.width).toBeGreaterThanOrEqual(48)
+    expect(metrics.rect.height).toBeGreaterThanOrEqual(48)
+    expect(metrics.rect.left).toBeLessThanOrEqual(16)
     expect(metrics.pageOverflow).toBe(false)
   }
-  await expect(navigation).toHaveCSS('display', 'contents')
-
-  const toggle = sidebar.locator('.admin-nav-toggle')
+  await expect(sidebar).toHaveCSS('visibility', 'hidden')
+  await mobileToggle.click()
+  await expect(mobileToggle).toHaveAttribute('aria-expanded', 'true')
+  await expect(sidebar).toHaveCSS('visibility', 'visible')
+  await expect(sidebar).toHaveCSS('transform', 'none')
+  await expect(sidebar).toHaveAttribute('role', 'dialog')
+  await expect(sidebar).toHaveAttribute('aria-modal', 'true')
+  await expect(page.getByRole('button', { name: '关闭导航菜单' })).toBeFocused()
+  await expect(navigation).toHaveCSS('overflow-y', 'auto')
+  expect(await sidebar.locator('.folder-nav > button span').allTextContents())
+    .toEqual(['收件箱', '星标邮件', '草稿箱', '已发送', '垃圾箱', 'iCloud 邮箱', 'Linux DO 邮箱', 'Gmail 邮箱', 'Microsoft 邮箱', 'QQ 邮箱', 'NAVER 邮箱', 'Yandex 邮箱'])
+  const folderGeometry = await sidebar.locator('.folder-nav > button').evaluateAll((buttons) => (
+    buttons.map((button) => {
+      const rect = button.getBoundingClientRect()
+      return { width: rect.width, height: rect.height, top: rect.top }
+    })
+  ))
+  expect(folderGeometry.every(({ height }) => height >= 48)).toBe(true)
+  expect(new Set(folderGeometry.map(({ top }) => Math.round(top))).size).toBe(folderGeometry.length)
   const adminNav = page.locator('.admin-nav')
-  await expect(toggle).toHaveAttribute('aria-label', '展开管理员功能')
-  await expect(toggle).toHaveAttribute('aria-expanded', 'false')
-  await expect(adminNav).toHaveCSS('visibility', 'hidden')
-  expect(await adminNav.evaluate((element) => getComputedStyle(element).transitionDuration
-    .split(',').some((duration) => Number.parseFloat(duration) > 0))).toBe(true)
-  await toggle.click()
-  await expect(toggle).toHaveAttribute('aria-expanded', 'true')
-  await expect(toggle).toHaveAttribute('aria-label', '收起管理员功能')
   await expect(adminNav).toHaveCSS('visibility', 'visible')
   await expect(adminNav).toHaveCSS('transform', 'none')
   await expect(adminNav.getByRole('button')).toHaveCount(6)
-  const expandedGeometry = await Promise.all([
-    sidebar.evaluate((element) => element.getBoundingClientRect().top),
-    adminNav.evaluate((element) => element.getBoundingClientRect().bottom),
-  ])
-  expect(expandedGeometry[1]).toBeLessThan(expandedGeometry[0])
-  await toggle.click()
-  await expect(toggle).toHaveAttribute('aria-expanded', 'false')
-  await expect(toggle).toHaveAttribute('aria-label', '展开管理员功能')
-  await expect(adminNav).toHaveCSS('visibility', 'hidden')
+  await page.keyboard.press('Escape')
+  await expect(sidebar).toHaveCSS('visibility', 'hidden')
+  await expect(mobileToggle).toBeFocused()
+
+  await mobileToggle.click()
+  await sidebar.getByRole('button', { name: '星标邮件' }).click()
+  await expect(page).toHaveURL(/\/mail\/starred$/)
+  await expect(sidebar).toHaveCSS('visibility', 'hidden')
 
   await page.setViewportSize({ width: 1280, height: 520 })
+  await expect(mobileToggle).toHaveCSS('display', 'none')
+  await expect(sidebar).toHaveCSS('visibility', 'visible')
   const brand = sidebar.locator('.sidebar-brand > .brand')
   await expect(brand).toContainText('OmniMail')
   expect(await brand.evaluate((element) => element.closest('a'))).toBeNull()
@@ -132,7 +140,7 @@ test('navigation stays usable on mobile and short desktop viewports', async ({ p
   expect(websiteBox!.x - repositoryBox!.x - repositoryBox!.width).toBeGreaterThanOrEqual(8)
   expect(websiteBox!.x + websiteBox!.width).toBeLessThanOrEqual(sidebarBox!.x + sidebarBox!.width)
   expect(await sidebar.locator('.folder-nav > button span').allTextContents())
-    .toEqual(['收件箱', '星标邮件', '草稿箱', '已发送', '垃圾箱', 'iCloud 邮箱', 'Linux DO 邮箱'])
+    .toEqual(['收件箱', '星标邮件', '草稿箱', '已发送', '垃圾箱', 'iCloud 邮箱', 'Linux DO 邮箱', 'Gmail 邮箱', 'Microsoft 邮箱', 'QQ 邮箱', 'NAVER 邮箱', 'Yandex 邮箱'])
   await expect(sidebar).toHaveCSS('overflow-y', 'hidden')
   await expect(navigation).toHaveCSS('overflow-y', 'scroll')
   expect(await navigation.evaluate((element) => element.scrollHeight > element.clientHeight)).toBe(true)
@@ -164,7 +172,8 @@ test('navigation stays usable on mobile and short desktop viewports', async ({ p
   await page.setViewportSize({ width: 393, height: 800 })
   sessionRole = 'user'
   await page.reload()
-  await expect(page.getByRole('button', { name: '展开管理员功能' })).toHaveCount(0)
+  await page.getByRole('button', { name: '打开导航菜单' }).click()
   await expect(page.getByRole('navigation', { name: '管理员功能' })).toHaveCount(0)
-  expect((await primaryMetrics()).count).toBe(8)
+  await expect(page.locator('.folder-nav > button')).toHaveCount(12)
+  await expect(page.locator('.account-nav > button')).toHaveCount(1)
 })

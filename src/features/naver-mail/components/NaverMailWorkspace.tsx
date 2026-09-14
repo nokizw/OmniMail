@@ -1,4 +1,4 @@
-﻿import {
+import {
   AlertCircle,
   Check,
   Copy,
@@ -333,7 +333,7 @@ export function NaverMailWorkspace({ enabled, remoteImagesEnabled }: {
       <div className="gmail-message-list" aria-busy={loading}>
         {!enabled ? <div className="icloud-empty">
           <span><KeyRound size={24} /></span><h3>{t('NAVER 邮箱功能尚未启用')}</h3>
-          <p>{t('在 Worker Variables & Secrets 中配置至少 32 字节的 NAVER_MAIL_CREDENTIALS_KEY，然后重新部署。')}</p>
+          <p>{t('在 Worker Variables & Secrets 中配置至少 32 字节的 MAIL_CREDENTIALS_KEY，然后重新部署。')}</p>
         </div> : loading ? <div className="gmail-list-state" role="status">
           <LoaderCircle className="spin" size={21} />{t('正在读取 NAVER 邮箱索引…')}
         </div> : !accounts.length ? <div className="gmail-list-state gmail-list-state--empty">

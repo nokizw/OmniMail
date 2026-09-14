@@ -131,7 +131,7 @@ export class ICloudAccountStore {
     if (!iCloudCredentialsReady(env)) {
       throw new ICloudStoreError(
         503,
-        'iCloud 功能尚未配置 ICLOUD_CREDENTIALS_KEY。',
+        'iCloud 功能尚未配置 MAIL_CREDENTIALS_KEY 或 ICLOUD_CREDENTIALS_KEY。',
       )
     }
   }

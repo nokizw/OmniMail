@@ -62,6 +62,6 @@ describe('bulk message input', () => {
     expect(response.status).toBe(200)
     expect(await response.json()).toMatchObject({ updatedCount: 2 })
     expect(update?.sql).toContain('SELECT address FROM mailboxes WHERE user_id = ?')
-    expect(update?.bindings).toEqual([1, 'message-1', 'message-2', user.id])
+    expect(update?.bindings).toEqual([1, 1, 'message-1', 'message-2', user.id])
   })
 })

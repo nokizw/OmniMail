@@ -1,6 +1,7 @@
 import { normalizeEmail, safeJsonArray, validEmail } from '../../shared/http/api-helpers'
 import { searchLikePattern } from '../../shared/mail/message-search'
 import { pageResult, parsePageRequest } from '../../shared/http/pagination'
+import { cachedMessageCounts, cacheMessageCounts, type MessageCounts } from './message-count-cache'
 import type { Env, MessageRow, SessionUser } from '../../app/types'
 
 type SummaryFields = Pick<
@@ -28,13 +29,8 @@ type SummaryFields = Pick<
 >
 
 type SummaryRow = SummaryFields & { sort_time: number }
-type CountsRow = {
-  unread: number | null
-  starred: number | null
-  sent: number | null
-  trash: number | null
-  drafts: number | null
-}
+type CountsRow = { [Key in keyof MessageCounts]: number | null }
+type VersionRow = { version: number }
 
 const UNASSIGNED_MAILBOX = '__unassigned__@omnimail.invalid'
 
@@ -80,9 +76,10 @@ export async function listMessages(
   if (syncVersion === undefined) {
     return Response.json({ error: '邮件同步版本无效。' }, { status: 400 })
   }
-  const versionRow = await env.DB.prepare(
+  const versionStatement = env.DB.prepare(
     'SELECT version FROM mail_state_versions WHERE user_id = ?',
-  ).bind(user.id).first<{ version: number }>()
+  ).bind(user.id)
+  const versionRow = await versionStatement.first<VersionRow>()
   const version = Number(versionRow?.version || 0)
   if (syncVersion !== null && syncVersion === version) {
     return Response.json({ unchanged: true, version })
@@ -188,28 +185,39 @@ export async function listMessages(
      JOIN mailboxes mb ON mb.address = m.mailbox_address
      WHERE ${scopeConditions.join(' AND ')}`,
   ).bind(user.id, ...scopeBindings)
-  const [messagesResult, countsResult] = await env.DB.batch<SummaryRow | CountsRow>([
-    messagesStatement,
-    countsStatement,
-  ])
+  // 数量不随文件夹、搜索词或页码变化，同一用户和邮箱范围可复用；角色参与隔离。
+  const cacheKey = JSON.stringify([user.id, user.role, mailbox, mailbox ? '' : domain])
+  let counts = cachedMessageCounts(env.DB, cacheKey, version)
+  let batch = await env.DB.batch<SummaryRow | CountsRow | VersionRow>(counts
+    ? [messagesStatement, versionStatement]
+    : [messagesStatement, countsStatement, versionStatement])
+  let responseVersion = Number((batch.at(-1)?.results[0] as VersionRow | undefined)?.version || 0)
+  if (counts && responseVersion !== version) {
+    // 校验与读取之间发生了并发写入：在同一 D1 批次重新读取列表、统计和版本。
+    counts = undefined
+    batch = await env.DB.batch<SummaryRow | CountsRow | VersionRow>([
+      messagesStatement, countsStatement, versionStatement,
+    ])
+    responseVersion = Number((batch[2].results[0] as VersionRow | undefined)?.version || 0)
+  }
+  if (!counts) {
+    const row = batch[1].results[0] as CountsRow | undefined
+    counts = {
+      unread: row?.unread ?? 0, starred: row?.starred ?? 0, sent: row?.sent ?? 0,
+      trash: row?.trash ?? 0, drafts: row?.drafts ?? 0,
+    }
+    cacheMessageCounts(env.DB, cacheKey, responseVersion, counts)
+  }
   const result = pageResult(
-    messagesResult.results as SummaryRow[],
+    batch[0].results as SummaryRow[],
     pagination.limit,
     (row) => [row.sort_time, row.id],
   )
-  const counts = countsResult.results[0] as CountsRow | undefined
-
   return Response.json({
     unchanged: false,
-    version,
+    version: responseVersion,
     messages: result.items.map(messageSummary),
-    counts: {
-      unread: counts?.unread ?? 0,
-      starred: counts?.starred ?? 0,
-      sent: counts?.sent ?? 0,
-      trash: counts?.trash ?? 0,
-      drafts: counts?.drafts ?? 0,
-    },
+    counts,
     page: result.page,
   })
 }

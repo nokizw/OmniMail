@@ -14,6 +14,7 @@ export function ExternalLinkDialog({
 }) {
   const titleId = useId()
   const descriptionId = useId()
+  const urlLabelId = useId()
   const dialogRef = useRef<HTMLElement>(null)
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle')
   const destination = new URL(href).host
@@ -89,9 +90,9 @@ export function ExternalLinkDialog({
               <dd><ExternalLink size={15} /><strong>{destination}</strong></dd>
             </div>
             <div>
-              <dt>{t('完整链接')}</dt>
+              <dt id={urlLabelId}>{t('完整链接')}</dt>
               <dd className="external-link-url">
-                <code>{href}</code>
+                <code tabIndex={0} aria-labelledby={urlLabelId}>{href}</code>
                 <button
                   type="button"
                   onClick={() => void copyLink()}

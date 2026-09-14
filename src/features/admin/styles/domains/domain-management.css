@@ -331,7 +331,7 @@
 
   .domain-toast {
     right: 14px;
-    bottom: 82px;
+    bottom: max(14px, env(safe-area-inset-bottom));
   }
 }
 

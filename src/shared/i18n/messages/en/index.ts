@@ -1,4 +1,5 @@
 import { enAdmin } from './admin'
+import { enMailCredentials } from './mail-credentials'
 import { enAdminMail } from './admin-mail'
 import { enApi } from './api'
 import { enErrors } from './errors'
@@ -20,6 +21,7 @@ import { enSecurity } from './security'
 import { enVersion } from './version'
 
 export const englishTranslations: Record<string, string> = {
+  ...enMailCredentials,
   ...enAdmin,
   ...enAdminMail,
   ...enInvites,

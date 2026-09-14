@@ -1,3 +1,4 @@
+import { canonicalMailFlags, changedIndexFields, needsIndexTrim, rememberIndexTrim } from '../../platform/imap/index-writes'
 import { ImapConnectionError } from '../../platform/imap/imap-errors'
 import {
   DEFAULT_MAIL_SYNC_LIMIT,
@@ -112,7 +113,7 @@ async function localUids(env: Env, source: ExternalSource, accountId: string, ui
   return results.map(({ imap_uid }) => imap_uid)
 }
 
-function messageStatement(
+export function messageStatement(
   env: Env,
   source: ExternalSource,
   accountId: string,
@@ -133,12 +134,13 @@ function messageStatement(
       recipients_json = excluded.recipients_json,
       subject = excluded.subject,
       preview = excluded.preview,
-      internal_date = excluded.internal_date,
+      internal_date = ${message.internalDate ? 'excluded.internal_date' : 'internal_date'},
       size_bytes = excluded.size_bytes,
       flags_json = excluded.flags_json,
       is_read = excluded.is_read,
       has_attachments = excluded.has_attachments,
-      updated_at = excluded.updated_at`,
+      updated_at = excluded.updated_at
+    WHERE ${changedIndexFields(table(source, 'messages'), ['message_id_header', 'sender_name', 'sender_address', 'recipients_json', 'subject', 'preview', 'size_bytes', 'flags_json', 'is_read', 'has_attachments', ...(message.internalDate ? ['internal_date'] : [])])}`,
   ).bind(
     `${source}_msg_${crypto.randomUUID().replaceAll('-', '')}`,
     accountId,
@@ -152,7 +154,7 @@ function messageStatement(
     '',
     message.internalDate || now,
     message.sizeBytes,
-    JSON.stringify(message.flags),
+    canonicalMailFlags(message.flags),
     Number(message.isRead),
     Number(message.hasAttachments),
     now,
@@ -234,13 +236,18 @@ export async function syncExternalMailAccount(
     statements.push(...missing.map((uid) => env.DB.prepare(
       `DELETE FROM ${table(source, 'messages')} WHERE account_id = ? AND uid_validity = ? AND imap_uid = ?`,
     ).bind(accountId, mailbox.uidValidity, uid)))
-    statements.push(env.DB.prepare(
-      `DELETE FROM ${table(source, 'messages')}
-        WHERE account_id = ? AND id NOT IN (
-          SELECT id FROM ${table(source, 'messages')} WHERE account_id = ?
-          ORDER BY internal_date DESC, id DESC LIMIT ?
-        )`,
-    ).bind(accountId, accountId, INDEX_MESSAGE_LIMIT))
+    const trimScope = JSON.stringify([source, accountId])
+    const trimNeeded = needsIndexTrim(env.DB, trimScope, INDEX_MESSAGE_LIMIT,
+      reset || metadata.some((message) => message.imapUid > account.lastSeenUid))
+    if (trimNeeded) {
+      statements.push(env.DB.prepare(
+        `DELETE FROM ${table(source, 'messages')}
+          WHERE account_id = ? AND id NOT IN (
+            SELECT id FROM ${table(source, 'messages')} WHERE account_id = ?
+            ORDER BY internal_date DESC, id DESC LIMIT ?
+          )`,
+      ).bind(accountId, accountId, INDEX_MESSAGE_LIMIT))
+    }
     statements.push(env.DB.prepare(
       `UPDATE ${table(source, 'accounts')}
           SET status = 'active', last_error = '', uid_validity = ?, last_seen_uid = ?,
@@ -259,6 +266,7 @@ export async function syncExternalMailAccount(
       leaseId,
     ))
     await env.DB.batch(statements)
+    if (trimNeeded) rememberIndexTrim(env.DB, trimScope, INDEX_MESSAGE_LIMIT)
     return { status: 'synced', retryable: false }
   } catch (error) {
     const code = await recordFailure(env, source, accountId, leaseId, error, now)

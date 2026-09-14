@@ -1,5 +1,7 @@
 # QQ 邮箱设置指南
 
+> 新部署推荐使用统一 `MAIL_CREDENTIALS_KEY`；旧 `QQ_MAIL_CREDENTIALS_KEY` 继续兼容。升级时先保留旧值，按[迁移指南](MAIL_CREDENTIALS.md)由主管理员主动迁移。
+
 OmniMail 使用个人 `@qq.com` 地址建立唯一收件连接，通过固定的
 `imap.qq.com:993` TLS 连接读取 INBOX，并通过固定的 `smtp.qq.com:465` 直接 TLS 发信。
 它不会保存远端正文或附件，也不会删除、移动、归档或星标远端邮件；打开正文后只会尝试
@@ -9,7 +11,7 @@ OmniMail 使用个人 `@qq.com` 地址建立唯一收件连接，通过固定的
 ## 部署配置
 
 1. 在 Cloudflare Worker 的 **Variables & Secrets** 中创建 Secret
-   `QQ_MAIL_CREDENTIALS_KEY`，内容至少 32 个 UTF-8 字节。
+   `MAIL_CREDENTIALS_KEY`，内容至少 32 个 UTF-8 字节。
 2. 应用 D1 迁移到 `0031_qq_mail_identities.sql` 并重新部署 Worker。
 3. 可选配置 `QQ_MAIL_IMAP_ENABLED=false`，用于紧急隐藏入口并停止新的定时同步任务。
 4. 管理员可在 **系统设置 → 邮箱功能入口** 中单独隐藏或恢复 QQ 邮箱入口。

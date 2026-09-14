@@ -588,7 +588,7 @@ API Key、初始化令牌或其他 Secret。Email Routing 无法由当前 Worker
 该功能复用当前 Cookie 会话与设备令牌。OmniMail Float 的受限令牌只能读取已连接账号
 的公开元数据、已有别名与最近来信，并创建隐藏地址；不能新增或删除账号、读写 Cookie
 与应用专用密码，也不能停用或删除已有别名。先在 Worker 中配置至少 32 字节的
-`ICLOUD_CREDENTIALS_KEY`；公开配置只返回 `iCloudEnabled` 布尔值，不返回密钥或任何
+`MAIL_CREDENTIALS_KEY`（兼容 `ICLOUD_CREDENTIALS_KEY`）；公开配置只返回 `iCloudEnabled` 布尔值，不返回密钥或任何
 Apple 凭据。
 
 账号与凭据接口：
@@ -641,7 +641,7 @@ GET /api/icloud/inbox/{uid}?accountId={id}
 
 ## Gmail 聚合收件箱
 
-配置至少 32 字节的 `GMAIL_CREDENTIALS_KEY` 后，每个用户可连接多个 Gmail 或
+配置至少 32 字节的 `MAIL_CREDENTIALS_KEY`（兼容 `GMAIL_CREDENTIALS_KEY`） 后，每个用户可连接多个 Gmail 或
 Google Workspace 账号。应用专用密码使用 AES-GCM 加密，附加数据绑定用户、账号与字段；
 列表接口只返回 `hasAppPassword: true`。添加、验证与更新凭据按用户和来源 IP 限速，服务器、
 端口和 TLS 模式固定为 `imap.gmail.com:993`，请求不能把 Worker 当作任意 TCP 代理。
@@ -684,7 +684,7 @@ GET /api/gmail/accounts/{accountId}/messages/{messageId}/attachments/{partId}
 
 ## Microsoft 邮箱（仅已读写入）
 
-配置至少 32 字节的 `MICROSOFT_CREDENTIALS_KEY` 后，用户可导入结构化 OAuth2 凭据。
+配置至少 32 字节的 `MAIL_CREDENTIALS_KEY`（兼容 `MICROSOFT_CREDENTIALS_KEY`） 后，用户可导入结构化 OAuth2 凭据。
 四字段组合 password 经确认后独立加密留存，但不参与认证。OAuth2 只访问 Microsoft Global
 官方 token endpoint；IMAP 固定为 `outlook.office365.com:993` TLS。请求不能提供任意 URL、
 主机或端口，也不会在 OAuth2 失败后自动改用密码。
@@ -723,7 +723,7 @@ GET /api/microsoft/accounts/{accountId}/messages/{messageId}/attachments/{partId
 
 ## QQ 邮箱
 
-配置至少 32 字节的 `QQ_MAIL_CREDENTIALS_KEY` 后，个人 `@qq.com` 用户可使用 QQ 邮箱授权码
+配置至少 32 字节的 `MAIL_CREDENTIALS_KEY`（兼容 `QQ_MAIL_CREDENTIALS_KEY`） 后，个人 `@qq.com` 用户可使用 QQ 邮箱授权码
 连接固定的 `imap.qq.com:993` TLS 端点。请求不能提供任意 IMAP 主机、端口或命令；授权码在
 远端验证成功后才以 QQ 专用密钥加密保存，API 只返回 `hasAuthorizationCode: true`。
 

@@ -16,6 +16,7 @@ import { hasIndexedSourceScopes } from './mail-source-background'
 import { handleChromeNotificationClick } from './notification-navigation'
 import { normalizedNotificationSettings } from './notification-settings'
 import { runMailPoll } from './notification-poll'
+import { recordRequestPause, requestPause } from './request-backoff'
 
 const MAIL_ALARM = 'omnimail-mail-poll'
 const LOCAL_SETTINGS = [
@@ -92,9 +93,10 @@ function normalizeApiOrigin(value: string): string {
   return url.origin
 }
 
-async function parseResponse<T>(response: Response): Promise<T> {
+async function parseResponse<T>(response: Response, origin = response.url ? new URL(response.url).origin : ''): Promise<T> {
   const body = await response.json().catch(() => ({})) as T & { error?: string }
   if (!response.ok) {
+    recordRequestPause(origin, body, response.status)
     throw new RequestError(body.error || `请求失败（${response.status}）`, response.status)
   }
   return body
@@ -105,6 +107,8 @@ async function publicRequest<T>(
   path: string,
   init: RequestInit = {},
 ): Promise<T> {
+  const pause = requestPause(apiOrigin)
+  if (pause) throw new RequestError(pause, 503)
   const headers = new Headers(init.headers)
   if (typeof init.body === 'string') headers.set('Content-Type', 'application/json')
   const response = await fetch(`${apiOrigin}${path}`, {
@@ -112,7 +116,7 @@ async function publicRequest<T>(
     headers,
     signal: AbortSignal.timeout(15_000),
   })
-  return parseResponse<T>(response)
+  return parseResponse<T>(response, apiOrigin)
 }
 
 async function saveTokens(tokens: TokenResponse): Promise<SessionAuth> {
@@ -196,7 +200,9 @@ async function refreshAuth(): Promise<SessionAuth> {
 
 async function authenticatedFetch(path: string, init: RequestInit = {}): Promise<Response> {
   const settings = await chrome.storage.local.get(['apiOrigin'])
-  if (!settings.apiOrigin) throw new RequestError('请先设置 OmniMail 地址。', 401)
+  if (typeof settings.apiOrigin !== 'string' || !settings.apiOrigin) throw new RequestError('请先设置 OmniMail 地址。', 401)
+  const pause = requestPause(settings.apiOrigin)
+  if (pause) throw new RequestError(pause, 503)
   let auth = await loadAuth()
   if (!auth.accessToken || !auth.accessExpiresAt || auth.accessExpiresAt < Date.now() + ACCESS_REFRESH_MARGIN_MS) {
     auth = await refreshAuth()

@@ -1,3 +1,5 @@
+import { NOTIFICATION_MIGRATION, NOTIFICATION_RECOVERY } from './schema-migration-notifications'
+import { MESSAGE_READ_MIGRATION, MESSAGE_READ_RECOVERY } from './schema-migration-message-reads'
 import { NAVER_MAIL_MIGRATION, NAVER_MAIL_RECOVERY } from './schema-migration-naver'
 import { YANDEX_MAIL_MIGRATION, YANDEX_MAIL_RECOVERY } from './schema-migration-yandex'
 import {
@@ -19,7 +21,7 @@ const MICROSOFT_MIGRATION = '0027_microsoft_imap.sql'
 const MICROSOFT_COMBINATION_PASSWORD_MIGRATION = '0028_microsoft_oauth_combination_password.sql'
 const QQ_MAIL_MIGRATION = '0029_qq_mail_imap.sql'
 const QQ_MAIL_SMTP_MIGRATION = '0030_qq_mail_smtp.sql'
-export const REQUIRED_MIGRATION = EXTERNAL_MAIL_INDEX_MIGRATION
+export const REQUIRED_MIGRATION = NOTIFICATION_MIGRATION
 export const WRANGLER_MIGRATION_NAMES = [
   '0001_initial.sql',
   '0002_domains.sql',
@@ -54,6 +56,7 @@ export const WRANGLER_MIGRATION_NAMES = [
   QQ_MAIL_IDENTITIES_MIGRATION,
   NAVER_MAIL_MIGRATION,
   YANDEX_MAIL_MIGRATION,
+  EXTERNAL_MAIL_INDEX_MIGRATION, MESSAGE_READ_MIGRATION,
   REQUIRED_MIGRATION,
 ] as const
 export const LEGACY_BASELINES: Record<string, number> = {
@@ -593,4 +596,5 @@ export const RECOVERABLE_MIGRATIONS = [
   NAVER_MAIL_RECOVERY,
   YANDEX_MAIL_RECOVERY,
   EXTERNAL_MAIL_INDEX_RECOVERY,
+  MESSAGE_READ_RECOVERY, NOTIFICATION_RECOVERY,
 ] as const

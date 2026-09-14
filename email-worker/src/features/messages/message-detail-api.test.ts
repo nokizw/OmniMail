@@ -17,6 +17,7 @@ const message = {
   references_header: null,
   sender_name: 'Sender',
   sender_address: 'sender@example.net',
+  reply_to_json: '["support@example.net"]',
   delivered_to: null,
   recipients_json: '["inbox@example.com"]',
   cc_json: '[]',
@@ -98,12 +99,13 @@ describe('message details', () => {
       message.id,
     )
     const result = await response.json() as {
-      message: { id: string }
+      message: { id: string; replyTo: string }
       thread: Array<{ id: string }>
     }
 
     expect(response.status).toBe(200)
     expect(result.message.id).toBe(message.id)
+    expect(result.message.replyTo).toBe('support@example.net')
     expect(result.thread).toEqual([expect.objectContaining({ id: message.id })])
     expect(log).toHaveBeenCalledWith(
       'Unable to load message thread',

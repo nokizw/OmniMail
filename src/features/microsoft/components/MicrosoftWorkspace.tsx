@@ -253,7 +253,7 @@ export function MicrosoftWorkspace({ enabled, remoteImagesEnabled }: {
       <div className="gmail-message-list" aria-busy={loading}>
         {!enabled ? <div className="icloud-empty"><span><KeyRound size={24} /></span>
           <h3>{t('Microsoft 邮箱功能尚未启用')}</h3>
-          <p>{t('配置至少 32 字节的 MICROSOFT_CREDENTIALS_KEY，并启用 MICROSOFT_MAIL_ENABLED 后重新部署。')}</p></div>
+          <p>{t('配置至少 32 字节的 MAIL_CREDENTIALS_KEY，并启用 MICROSOFT_MAIL_ENABLED 后重新部署。')}</p></div>
           : loading ? <div className="gmail-list-state" role="status"><LoaderCircle className="spin" size={21} />{t('正在读取 Microsoft 邮件索引…')}</div>
             : !accounts.length ? <div className="gmail-list-state gmail-list-state--empty"><span><Mail size={25} /></span>
               <h2>{t('连接你的第一个 Microsoft 邮箱')}</h2><p>{t('仅支持 OAuth2；不再接受仅邮箱密码登录。')}</p>

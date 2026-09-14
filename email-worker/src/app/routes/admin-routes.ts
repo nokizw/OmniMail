@@ -1,5 +1,6 @@
 import type { Hono } from 'hono'
 import type { AppContext } from '../context'
+import { getMailCredentialMigration, postMailCredentialMigration } from '../../features/admin/credentials/mail-credential-api'
 import { configuredSuperAdminEmail } from '../super-admin'
 import { listAuditLogs } from '../../features/admin/audit/audit-log-api'
 import { createDomain, deleteDomain, listDomains, updateDomain } from '../../features/admin/domains/domain-api'
@@ -16,6 +17,8 @@ import { systemVersionRoutes } from '../../features/system/system-version-routes
 import { clientIp } from '../../shared/http/api-helpers'
 
 export function registerAdminRoutes(app: Hono<AppContext>): void {
+app.get('/api/admin/mail-credentials/migration', (c) => getMailCredentialMigration(c.env, c.get('user'), c.get('authKind')))
+app.post('/api/admin/mail-credentials/migration', (c) => postMailCredentialMigration(c.env, c.get('user'), c.req.raw, c.get('authKind'), clientIp(c.req.raw.headers)))
 app.get('/api/invitations/:token', (context) => temporaryInvitePreview(context.env, context.req.param('token')))
 app.post('/api/invitations/:token', (context) => registerTemporaryInvite(context.env, context.req.param('token'), context.req.raw, clientIp(context.req.raw.headers)))
 app.get('/api/admin/invites', (context) => listTemporaryInvites(

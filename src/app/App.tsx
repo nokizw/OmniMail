@@ -30,6 +30,7 @@ import { useNewMailNotifications } from '../features/mailbox/hooks/useNewMailNot
 import { type AdminView, useWorkspaceNavigation } from './navigation/workspaceNavigation'
 const AdminWorkspace = lazy(async () => ({ default: (await import('../features/admin/shell/AdminWorkspace')).AdminWorkspace }))
 const DeploymentWizard = lazy(async () => ({ default: (await import('../features/deployment/components/DeploymentWizard')).DeploymentWizard }))
+const MailCredentialMigration = lazy(async () => ({ default: (await import('../features/deployment/components/MailCredentialMigration')).MailCredentialMigration }))
 const ICloudWorkspace = lazy(async () => ({ default: (await import('../features/icloud/components/ICloudWorkspace')).ICloudWorkspace }))
 const LinuxDoMailWorkspace = lazy(async () => ({ default: (await import('../features/linux-do-mail/components/LinuxDoMailWorkspace')).LinuxDoMailWorkspace }))
 const GmailWorkspace = lazy(async () => ({ default: (await import('../features/gmail/components/GmailWorkspace')).GmailWorkspace }))
@@ -265,6 +266,7 @@ function Mailbox({
             />
           </div>
         </header>
+        {user.role === 'super_admin' && <Suspense fallback={null}><MailCredentialMigration userId={user.id} suspended={deploymentWizardOpen} /></Suspense>}
         {folder !== 'drafts' && <label className="search-field">
           <Search size={17} />
           <span className="sr-only">{t('搜索邮件')}</span>

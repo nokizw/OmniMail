@@ -20,6 +20,12 @@
   background: var(--surface-muted);
 }
 
+.mobile-sidebar-toggle,
+.mobile-sidebar-backdrop,
+.mobile-sidebar-close {
+  display: none;
+}
+
 .sidebar-brand {
   display: flex;
   flex: 0 0 auto;
@@ -102,10 +108,6 @@
   margin-top: 18px;
   padding-top: 18px;
   border-top: 1px solid var(--line);
-}
-
-.admin-nav-toggle {
-  display: none;
 }
 
 .account-nav {

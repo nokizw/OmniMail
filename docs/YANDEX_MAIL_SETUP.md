@@ -1,5 +1,7 @@
 # Yandex Mail 设置指南
 
+> 新部署推荐使用统一 `MAIL_CREDENTIALS_KEY`；旧 `YANDEX_MAIL_CREDENTIALS_KEY` 继续兼容。升级时先保留旧值，按[迁移指南](MAIL_CREDENTIALS.md)由主管理员主动迁移。
+
 OmniMail 的 Yandex Mail 首版仅支持个人 `@yandex.com` 邮箱。它是独立的只读 IMAP 工作区：
 同步有限 INBOX 元数据，正文与附件按需读取，打开正文后仅尝试同步远端已读状态；不支持发信、
 删除、移动、归档、星标或文件夹管理。
@@ -23,7 +25,7 @@ OmniMail 的 Yandex Mail 首版仅支持个人 `@yandex.com` 邮箱。它是独�
 创建至少 32 个随机 UTF-8 字节的 Secret：
 
 ```text
-YANDEX_MAIL_CREDENTIALS_KEY=<至少 32 字节的随机 Secret>
+MAIL_CREDENTIALS_KEY=<至少 32 字节的随机 Secret>
 ```
 
 首次部署和灰度期间保持：

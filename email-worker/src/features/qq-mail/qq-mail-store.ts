@@ -127,7 +127,7 @@ export class QqMailAccountStore {
     private readonly userId: string,
   ) {
     if (!qqMailCredentialsReady(env)) {
-      throw new QqMailStoreError(503, 'QQ 邮箱功能尚未配置 QQ_MAIL_CREDENTIALS_KEY。')
+      throw new QqMailStoreError(503, 'QQ 邮箱功能尚未配置 MAIL_CREDENTIALS_KEY 或 QQ_MAIL_CREDENTIALS_KEY。')
     }
   }
 

@@ -1,12 +1,21 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { api } from './api-client'
+import { serviceBackoff } from './service-backoff'
 
 afterEach(() => {
+  serviceBackoff(Number.MAX_SAFE_INTEGER)
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
 })
 
 describe('API request timeouts', () => {
+  it('收到明确额度错误后暂停后续网络请求，且不误清除登录状态', async () => {
+    const fetch = vi.fn(async () => Response.json({ code: 'd1_daily_limit', retryAfterSeconds: 60, resetAt: Date.now() + 3600000 }, { status: 503 }))
+    vi.stubGlobal('fetch', fetch)
+    await expect(api.config()).rejects.toThrow('额度')
+    await expect(api.session()).rejects.toThrow('额度')
+    expect(fetch).toHaveBeenCalledTimes(1)
+  })
   it('allows startup requests to survive a slow D1 cold path', async () => {
     const timeout = vi.spyOn(AbortSignal, 'timeout')
     vi.stubGlobal('fetch', vi.fn(async () => Response.json({ user: null })))

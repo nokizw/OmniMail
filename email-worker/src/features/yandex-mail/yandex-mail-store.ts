@@ -107,7 +107,7 @@ export class YandexMailAccountStore {
     if (!yandexMailCredentialsReady(env)) {
       throw new YandexMailStoreError(
         503,
-        'Yandex 邮箱功能尚未配置 YANDEX_MAIL_CREDENTIALS_KEY。',
+        'Yandex 邮箱功能尚未配置 MAIL_CREDENTIALS_KEY 或 YANDEX_MAIL_CREDENTIALS_KEY。',
       )
     }
   }

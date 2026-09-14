@@ -1,5 +1,7 @@
 # NAVER Mail 设置指南
 
+> 新部署推荐使用统一 `MAIL_CREDENTIALS_KEY`；旧 `NAVER_MAIL_CREDENTIALS_KEY` 继续兼容。升级时先保留旧值，按[迁移指南](MAIL_CREDENTIALS.md)由主管理员主动迁移。
+
 OmniMail 的 NAVER Mail 接入仅支持个人 `@naver.com` 邮箱。首版是只读 IMAP 工作区：
 同步有限 INBOX 元数据，正文与附件按需读取，打开正文后仅尝试同步远端已读状态；不支持
 发信、删除、移动、归档、星标或文件夹管理。
@@ -29,7 +31,7 @@ NAVER 可能针对 Cloudflare Worker 的动态 TCP 出口触发异常登录或�
 创建至少 32 个随机 UTF-8 字节的 Secret：
 
 ```text
-NAVER_MAIL_CREDENTIALS_KEY=<至少 32 字节的随机 Secret>
+MAIL_CREDENTIALS_KEY=<至少 32 字节的随机 Secret>
 ```
 
 测试阶段显式保持：

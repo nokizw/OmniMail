@@ -535,7 +535,7 @@ test('an expired or disabled session returns to the public home page', async ({ 
 })
 test('disabling a user uses the in-app safety dialog', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 900 }); await mockApp(page); await page.goto('/')
-  await page.getByRole('button', { name: '展开管理员功能' }).click(); await page.getByRole('button', { name: '用户' }).click(); await expect(page.locator('.managed-user-list .temporary-user-expiry')).toContainText('剩余 1 天 1 小时')
+  await page.getByRole('button', { name: '打开导航菜单' }).click(); await page.getByRole('button', { name: '用户' }).click(); await expect(page.locator('.managed-user-list .temporary-user-expiry')).toContainText('剩余 1 天 1 小时')
   await page.getByRole('button', { name: /Test User/ }).click()
   const policyBackdrop = page.locator('.user-policy-backdrop'); const policyPanel = page.locator('.user-panel')
   await expect(policyBackdrop).toHaveAttribute('data-state', 'open'); await expect(policyBackdrop).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)'); await expect(policyBackdrop).toHaveCSS('backdrop-filter', 'none'); await expect(policyPanel).toHaveCSS('transition-property', 'opacity, transform'); await expect(policyPanel).toHaveCSS('transform', 'none')

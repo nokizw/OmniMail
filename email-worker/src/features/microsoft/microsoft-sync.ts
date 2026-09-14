@@ -1,3 +1,4 @@
+import { canonicalMailFlags, changedIndexFields, needsIndexTrim, rememberIndexTrim } from '../../platform/imap/index-writes'
 import type { Env, MailQueueJob, MicrosoftSyncJob } from '../../app/types'
 import { ImapConnectionError } from '../../platform/imap/imap-errors'
 import { microsoftMailEnabled } from './microsoft-credentials'
@@ -74,7 +75,7 @@ async function localUids(
   return results.map(({ imap_uid }) => imap_uid)
 }
 
-function messageStatement(
+export function messageStatement(
   env: Env,
   accountId: string,
   folderPath: string,
@@ -97,14 +98,15 @@ function messageStatement(
       cc_json = excluded.cc_json,
       subject = excluded.subject,
       preview = excluded.preview,
-      received_at = excluded.received_at,
+      received_at = ${message.receivedAt ? 'excluded.received_at' : 'received_at'},
       sent_at = excluded.sent_at,
       size_bytes = excluded.size_bytes,
       flags_json = excluded.flags_json,
       is_read = excluded.is_read,
       is_starred = excluded.is_starred,
       has_attachments = excluded.has_attachments,
-      updated_at = excluded.updated_at`,
+      updated_at = excluded.updated_at
+    WHERE ${changedIndexFields('microsoft_imap_messages', ['internet_message_id', 'sender_name', 'sender_address', 'recipients_json', 'cc_json', 'subject', 'preview', 'sent_at', 'size_bytes', 'flags_json', 'is_read', 'is_starred', 'has_attachments', ...(message.receivedAt ? ['received_at'] : [])])}`,
   ).bind(
     `microsoft_msg_${crypto.randomUUID().replaceAll('-', '')}`,
     accountId,
@@ -121,7 +123,7 @@ function messageStatement(
     message.receivedAt || now,
     message.sentAt,
     message.sizeBytes,
-    JSON.stringify(message.flags),
+    canonicalMailFlags(message.flags),
     Number(message.isRead),
     Number(message.isStarred),
     Number(message.hasAttachments),
@@ -172,14 +174,19 @@ export async function refreshMicrosoftFolderWithClient(
     `DELETE FROM microsoft_imap_messages
       WHERE account_id = ? AND folder_path = ? AND uid_validity = ? AND imap_uid = ?`,
   ).bind(accountId, folderPath, mailbox.uidValidity, uid)))
-  statements.push(env.DB.prepare(
-    `DELETE FROM microsoft_imap_messages
-      WHERE account_id = ? AND folder_path = ? AND id NOT IN (
-        SELECT id FROM microsoft_imap_messages
-          WHERE account_id = ? AND folder_path = ?
-          ORDER BY received_at DESC, id DESC LIMIT ?
-      )`,
-  ).bind(accountId, folderPath, accountId, folderPath, INDEX_MESSAGE_LIMIT))
+  const trimScope = JSON.stringify(['microsoft', accountId, folderPath])
+  const trimNeeded = needsIndexTrim(env.DB, trimScope, INDEX_MESSAGE_LIMIT,
+    folder.uid_validity !== mailbox.uidValidity || targetUids.some((uid) => !existing.includes(uid)))
+  if (trimNeeded) {
+    statements.push(env.DB.prepare(
+      `DELETE FROM microsoft_imap_messages
+        WHERE account_id = ? AND folder_path = ? AND id NOT IN (
+          SELECT id FROM microsoft_imap_messages
+            WHERE account_id = ? AND folder_path = ?
+            ORDER BY received_at DESC, id DESC LIMIT ?
+        )`,
+    ).bind(accountId, folderPath, accountId, folderPath, INDEX_MESSAGE_LIMIT))
+  }
   statements.push(env.DB.prepare(
     `UPDATE microsoft_imap_folders
         SET uid_validity = ?, last_uid = ?, last_listed_at = ?
@@ -192,6 +199,7 @@ export async function refreshMicrosoftFolderWithClient(
     folderPath,
   ))
   await env.DB.batch(statements)
+  if (trimNeeded) rememberIndexTrim(env.DB, trimScope, INDEX_MESSAGE_LIMIT)
   return { uidValidity: mailbox.uidValidity, indexed: metadata.length }
 }
 

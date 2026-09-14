@@ -8,7 +8,59 @@
 
 > Global policies, storage, backup browsing, and system updates.
 
-本分类共 **17** 个端点。返回 [完整 API 索引](README.md) 或 [API 架构与安全说明](../API.md)。
+本分类共 **19** 个端点。返回 [完整 API 索引](README.md) 或 [API 架构与安全说明](../API.md)。
+
+<!-- endpoint:GET /api/admin/mail-credentials/migration catalog:507bbcf0bacb -->
+## `GET /api/admin/mail-credentials/migration`
+
+**读取邮箱密钥迁移进度 / Read mail key migration progress**
+
+仅主管理员 Cookie 会话；只统计配置和迁移进度，不返回密钥、凭据或密文。
+
+> Owner cookie session only; return configuration and progress without keys, credentials or ciphertext.
+
+| 项目 | 内容 |
+| --- | --- |
+| 认证 | 浏览器 Session Cookie |
+| 请求 | No parameters |
+| 成功响应 | 200 · { globalKeyConfigured, globalKeyReady, keyId, total, migrated, pending, providers } |
+
+### cURL 示例
+
+```bash
+curl --request GET \
+  --url "https://mail.example.com/api/admin/mail-credentials/migration" \
+  --cookie "omnimail_session=..."
+```
+
+<!-- endpoint:POST /api/admin/mail-credentials/migration catalog:592f2329bc3a -->
+## `POST /api/admin/mail-credentials/migration`
+
+**迁移一批邮箱凭据 / Migrate one batch of mail credentials**
+
+仅主管理员 Cookie 会话；每次最多处理 10 个凭据字段。必须显式确认并提交当前 keyId；失败保留原数据，关闭页面后不再发起后续批次。
+
+> Owner cookie session only; process at most 10 credential fields per request. Requires explicit confirmation and the current keyId. Failures preserve the original data; closing the page stops further batches.
+
+| 项目 | 内容 |
+| --- | --- |
+| 认证 | 浏览器 Session Cookie |
+| 请求 | JSON · confirm: true, keyId, cursor?: { field, afterId } \| null |
+| 成功响应 | 200 · { cursor, scanned, migrated, failed, conflicts, status } |
+
+### cURL 示例
+
+```bash
+curl --request POST \
+  --url "https://mail.example.com/api/admin/mail-credentials/migration" \
+  --cookie "omnimail_session=..." \
+  --header "Content-Type: application/json" \
+  --data '{
+  "confirm": true,
+  "keyId": "0123456789abcdef0123456789abcdef",
+  "cursor": null
+}'
+```
 
 <!-- endpoint:PATCH /api/admin/settings/registration catalog:3c1ee70c1d82 -->
 ## `PATCH /api/admin/settings/registration`

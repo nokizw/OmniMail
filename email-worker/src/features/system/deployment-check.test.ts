@@ -37,6 +37,18 @@ function environment(): Env {
 }
 
 describe('deployment check', () => {
+  it('全局密钥使全部邮箱加密检查就绪，不要求逐个新增 Secret', async () => {
+    const env = environment()
+    for (const name of Object.keys(env)) {
+      if (name.endsWith('_CREDENTIALS_KEY')) delete (env as unknown as Record<string, unknown>)[name]
+    }
+    env.MAIL_CREDENTIALS_KEY = 'global-do-not-return-this-secret-value'
+    const response = await deploymentCheck(env, administrator)
+    const result = await response.json() as { checks: Array<{ id: string; state: string }> }
+    const ids = ['icloud-key', 'linux-do-mail-key', 'gmail-key', 'microsoft-key', 'qq-mail-key', 'naver-mail-key', 'yandex-mail-key']
+    for (const id of ids) expect(result.checks.find((item) => item.id === id)?.state).toBe('ready')
+    expect(JSON.stringify(result)).not.toContain('do-not-return')
+  })
   it('reports public setup requirements without returning secret values', () => {
     expect(publicSetupRequirements(environment())).toEqual({
       databaseReady: true,

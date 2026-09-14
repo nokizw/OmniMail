@@ -137,7 +137,7 @@ export class MicrosoftAccountStore {
       throw new MicrosoftStoreError(
         503,
         'credential_key_unavailable',
-        'Microsoft 功能尚未配置 MICROSOFT_CREDENTIALS_KEY。',
+        'Microsoft 功能尚未配置 MAIL_CREDENTIALS_KEY 或 MICROSOFT_CREDENTIALS_KEY。',
       )
     }
   }

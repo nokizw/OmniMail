@@ -2,20 +2,37 @@ import { fetchApi } from './app/api'
 import { cleanup } from './platform/scheduling/cleanup'
 import { consumeEmailQueue, receiveEmail } from './app/handlers/mail'
 import type { Env, MailQueueJob } from './app/types'
+import { D1QuotaError, d1QuotaResponse, quotaEnvironment, quotaQueueDelay } from './platform/d1/quota-guard'
 
 export { OmniMailBackupWorkflow } from './features/backups/backup'
 export { OmniMailCleanupWorkflow } from './platform/scheduling/cleanup-workflow'
 
 async function fetchRequest(request: Request, env: Env, context: ExecutionContext): Promise<Response> {
   const path = new URL(request.url).pathname
-  return path === '/api' || path.startsWith('/api/')
-    ? fetchApi(request, env, context)
-    : env.ASSETS.fetch(request)
+  if (path !== '/api' && !path.startsWith('/api/')) return env.ASSETS.fetch(request)
+  const guarded = quotaEnvironment(env)
+  const response = await fetchApi(request, guarded, context)
+  const quota = response.status >= 500 ? d1QuotaResponse(guarded.DB) : undefined
+  if (!quota) return response
+  // 保留原中间件的 CORS 与安全响应头。
+  const headers = new Headers(response.headers)
+  quota.headers.forEach((value, key) => headers.set(key, value))
+  return new Response(quota.body, { status: quota.status, headers })
 }
 
 export default {
   fetch: fetchRequest,
-  email: receiveEmail,
-  queue: consumeEmailQueue,
-  scheduled: (_controller, env) => cleanup(env),
+  email: (message, env) => receiveEmail(message, quotaEnvironment(env)),
+  queue: async (batch, env) => {
+    try { await consumeEmailQueue(batch, quotaEnvironment(env)) }
+    catch (error) {
+      if (!(error instanceof D1QuotaError)) throw error
+      // 日额度耗尽不能通过数十秒重试恢复；保留任务，延迟到下一额度周期再尝试。
+      batch.retryAll({ delaySeconds: quotaQueueDelay(error) })
+    }
+  },
+  scheduled: async (_controller, env) => {
+    try { await cleanup(quotaEnvironment(env)) }
+    catch (error) { if (!(error instanceof D1QuotaError)) throw error }
+  },
 } satisfies ExportedHandler<Env, MailQueueJob>

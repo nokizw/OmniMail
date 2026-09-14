@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { serviceBackoff } from '../api/service-backoff'
 
 const MAX_REFRESH_DELAY = 120
 const REFRESH_LOCK = 'omnimail-mail-refresh-leader'
@@ -113,10 +114,12 @@ export function useAutoRefresh(
     let timer: number | undefined
 
     const schedule = () => {
-      if (!stopped) timer = window.setTimeout(() => void run(), delay * 1000)
+      const pauseMs = Math.max(0, (serviceBackoff()?.until || 0) - Date.now())
+      if (!stopped) timer = window.setTimeout(() => void run(), Math.max(delay * 1000, pauseMs))
     }
     const run = async () => {
       if (running) return
+      if (serviceBackoff()) { schedule(); return }
       if (document.visibilityState !== 'visible') {
         schedule()
         return

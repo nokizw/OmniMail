@@ -103,10 +103,54 @@
 .external-link-url code {
   max-height: 70px;
   overflow: auto;
+  padding-right: 4px;
   color: var(--text-secondary);
   font: 11px/1.45 ui-monospace, SFMono-Regular, Consolas, monospace;
+  overscroll-behavior: contain;
   overflow-wrap: anywhere;
+  scrollbar-color: color-mix(in srgb, var(--text-tertiary) 44%, transparent) transparent;
+  scrollbar-width: thin;
   user-select: text;
+}
+
+.external-link-url code::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.external-link-url code::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.external-link-url code::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text-tertiary) 44%, transparent);
+  background-clip: padding-box;
+}
+
+.external-link-url code:is(:hover, :focus-visible)::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--text-secondary) 72%, transparent);
+  background-clip: padding-box;
+}
+
+.external-link-url code::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.external-link-url code::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.external-link-url:has(code:focus-visible) {
+  border-color: var(--line-strong);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--text) 6%, transparent);
+}
+
+.external-link-url code:focus-visible {
+  outline: none;
 }
 
 .external-link-url button {

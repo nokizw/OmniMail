@@ -25,9 +25,16 @@ SENDFLARE_DOMAIN_CONFIGS={"sendflare.example":{"apiKey":"sf_example","from":"mai
 # At least 32 random characters. Encrypts administrator TOTP secrets in D1.
 TOTP_ENCRYPTION_KEY=
 
-# At least 32 UTF-8 bytes. Encrypts iCloud cookies and app-specific passwords in D1.
-ICLOUD_CREDENTIALS_KEY=
-
-# At least 32 UTF-8 bytes. Encrypts Microsoft refresh/access tokens or compatibility passwords.
-MICROSOFT_CREDENTIALS_KEY=
+# 可选：所有外部邮箱共用一个至少 32 个随机 UTF-8 字节的 Secret。
+MAIL_CREDENTIALS_KEY=
+# 旧部署继续支持以下独立密钥；迁移完成前保留原值。
+# ICLOUD_CREDENTIALS_KEY=
+# LINUX_DO_MAIL_CREDENTIALS_KEY=
+# GMAIL_CREDENTIALS_KEY=
+# QQ_MAIL_CREDENTIALS_KEY=
+# NAVER_MAIL_CREDENTIALS_KEY=
+# MICROSOFT_CREDENTIALS_KEY=
+# YANDEX_MAIL_CREDENTIALS_KEY=
 MICROSOFT_MAIL_ENABLED=true
+NAVER_MAIL_IMAP_ENABLED=false
+YANDEX_MAIL_IMAP_ENABLED=false

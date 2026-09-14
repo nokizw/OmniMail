@@ -75,11 +75,11 @@ async function updateOwnedMessages(
   let sql = ''
   let leadingBindings: Array<string | number> = []
   if (input.action === 'read' || input.action === 'unread') {
-    sql = `UPDATE messages SET is_read = ?, updated_at = unixepoch() WHERE ${scope}`
-    leadingBindings = [input.action === 'read' ? 1 : 0]
+    sql = `UPDATE messages SET is_read = ?, updated_at = unixepoch() WHERE is_read IS NOT ? AND ${scope}`
+    leadingBindings = [input.action === 'read' ? 1 : 0, input.action === 'read' ? 1 : 0]
   } else if (input.action === 'star' || input.action === 'unstar') {
-    sql = `UPDATE messages SET is_starred = ?, updated_at = unixepoch() WHERE ${scope}`
-    leadingBindings = [input.action === 'star' ? 1 : 0]
+    sql = `UPDATE messages SET is_starred = ?, updated_at = unixepoch() WHERE is_starred IS NOT ? AND ${scope}`
+    leadingBindings = [input.action === 'star' ? 1 : 0, input.action === 'star' ? 1 : 0]
   } else if (input.action === 'trash') {
     const now = Math.floor(Date.now() / 1000)
     const { trashRetentionDays } = await retentionValues(env.DB)
