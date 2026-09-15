@@ -1,9 +1,12 @@
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, rmdirSync } from 'node:fs'
 import { DatabaseSync } from 'node:sqlite'
 import { join } from 'node:path'
+import { tmpdir } from 'node:os'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { applyD1Migrations, migrationImport, migrationNames, parseAppliedMigrations } from './apply-d1-migrations.mjs'
 import { root, WranglerCommandError, withRetry } from './wrangler-command.mjs'
+import { deploy } from './deploy.mjs'
+import { resolveDeploymentTarget } from './deployment-target.mjs'
 
 const databases: DatabaseSync[] = []
 afterEach(() => {
@@ -71,6 +74,66 @@ function fixture(options: {
 }
 
 describe('部署 D1 迁移', () => {
+  it.each([false, true])('预创建 Worker 后完整部署自动建表，保留原库与其他服务数据（其他 D1：%s）', async (hasOtherDatabase) => {
+    const f = fixture()
+    const accountId = 'a'.repeat(32), databaseId = '11111111-1111-4111-8111-111111111111'
+    const other = fixture(), otherId = '22222222-2222-4222-8222-222222222222'
+    other.db.exec("CREATE TABLE service_nodes (id TEXT); INSERT INTO service_nodes VALUES ('keep')")
+    const otherDatabases = hasOtherDatabase ? [{ name: 'ggesim-frontend-nodes', uuid: otherId }] : []
+    const directory = mkdtempSync(join(tmpdir(), 'omnimail-first-deploy-test-'))
+    const rawConfig = { name: 'omni-mail', account_id: accountId, d1_databases: [{ binding: 'DB' }] }
+    const loaded = { rawConfig, config: rawConfig, configPath: join(directory, 'wrangler.jsonc') }
+    let provisioned = false
+    const events: string[] = []
+    const get = async (path: string) => {
+      if (path.endsWith('/settings')) return { bindings: provisioned ? [{ name: 'DB', type: 'd1', id: databaseId }] : [] }
+      const url = new URL(path, 'https://api.example')
+      if (url.pathname.endsWith('/d1/database')) {
+        const name = url.searchParams.get('name')
+        return otherDatabases.filter((database) => !name || database.name.includes(name))
+      }
+      throw new Error(`未预期的 API 查询：${path}`)
+    }
+    const run = async (args: string[]) => {
+      const configPath = args[args.indexOf('--config') + 1]
+      const binding = JSON.parse(readFileSync(configPath, 'utf8')).d1_databases[0]
+      if (args[0] === 'deploy') {
+        events.push('deploy')
+        if (!provisioned) {
+          expect(binding).toEqual({ binding: 'DB', database_name: 'omni-mail-db' })
+          provisioned = true
+        } else expect(binding.database_id).toBe(databaseId)
+        return ''
+      }
+      expect(provisioned).toBe(true)
+      expect(binding.database_id).toBe(databaseId)
+      events.push('d1')
+      return f.run(args)
+    }
+    const deps = {
+      run, retry: f.retry, makeReader: async () => get,
+      resolveTarget: (values: object) => resolveDeploymentTarget(values, { read: async () => loaded, get, environment: {} }),
+      migrate: (options: object) => applyD1Migrations({ ...options, run, retry: f.retry }),
+    }
+    try {
+      await deploy([], deps)
+      expect(events[0]).toBe('deploy')
+      expect(f.db.prepare('SELECT COUNT(*) AS count FROM d1_migrations').get()).toEqual({ count: 36 })
+      for (const name of ['settings', 'users', 'messages', 'mail_notification_versions', 'idx_messages_recipient_folder_sort']) {
+        expect(f.db.prepare('SELECT name FROM sqlite_master WHERE name = ?').get(name)).toEqual({ name })
+      }
+      f.db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run('deployment_test', 'preserved')
+      events.length = 0
+      await deploy([], deps)
+      expect(events).toEqual(['d1', 'deploy'])
+      expect(f.imports()).toBe(1)
+      expect(f.db.prepare("SELECT value FROM settings WHERE key = 'deployment_test'").get()).toEqual({ value: 'preserved' })
+      expect(other.run).not.toHaveBeenCalled()
+      expect(other.db.prepare('SELECT id FROM service_nodes').all()).toEqual([{ id: 'keep' }])
+      expect(other.db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all()).toEqual([{ name: 'service_nodes' }])
+    } finally { rmdirSync(directory) }
+  })
+
   it('处理 stdout 中的缺表错误，初始化空库并可重复部署', async () => {
     const f = fixture()
     await applyD1Migrations(f)
