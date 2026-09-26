@@ -112,7 +112,13 @@ export function PanelICloudInbox(props: Props) {
       const result = await sendExtensionMessage<{ message: ICloudMessage }>({
         type: 'api:icloud-message', accountId: props.accountId, id: message.id,
       })
-      if (currentRequest === detailRequestId.current) setSelected(result.message)
+      if (currentRequest === detailRequestId.current) {
+        setSelected(result.message)
+        if (result.message.isRead) {
+          setMessages((current) => current.map((item) => item.id === result.message.id
+            ? { ...item, isRead: true } : item))
+        }
+      }
     } catch (loadError) {
       if (currentRequest === detailRequestId.current) setError(errorText(loadError))
     } finally {
@@ -198,7 +204,7 @@ export function PanelICloudInbox(props: Props) {
           {messages.map((message) => {
             const code = extractVerificationCode(message.subject, message.preview)
             return <div className="message-list-item" key={message.id}>
-              <button className="message-open-button" type="button"
+              <button className={`message-open-button${message.isRead === false ? ' is-unread' : ''}`} type="button"
                 onClick={() => void openMessage(message)}>
                 <span className="unread-dot" /><span className="message-copy">
                   <strong>{message.from || t('未知发件人')}</strong>

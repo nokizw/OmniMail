@@ -51,6 +51,13 @@ test('inbox unread filter and row indicator clearly distinguish unread mail', as
   const readRow = page.locator('.message-row', { hasText: 'Already read' })
   await expect(unreadRow.locator('.message-row__unread-dot')).toBeVisible()
   await expect(readRow.locator('.message-row__unread-dot')).toHaveCount(0)
+  await expect(unreadRow).toHaveCSS('font-synthesis', 'weight')
+  for (const selector of ['.message-row__top strong', '.message-row__subject']) {
+    await expect(unreadRow.locator(selector)).toHaveCSS('font-weight', '700')
+    await expect(readRow.locator(selector)).toHaveCSS('font-weight', '400')
+  }
+  await expect(unreadRow.locator('.message-row__preview')).toHaveCSS('font-weight', '600')
+  await expect(readRow.locator('.message-row__preview')).toHaveCSS('font-weight', '400')
   const unreadTimeBox = await unreadRow.locator('time').boundingBox()
   const readTimeBox = await readRow.locator('time').boundingBox()
   const dotBox = await unreadRow.locator('.message-row__unread-dot').boundingBox()
